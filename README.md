@@ -31,7 +31,9 @@ python app.py
 
 ## 📸 Preview
 
-*Add project screenshots here*
+![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
 
 ## 📈 Future Improvements
 
