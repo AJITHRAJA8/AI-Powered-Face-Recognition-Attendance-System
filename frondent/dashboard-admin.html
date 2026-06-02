@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Smart Outing – Admin Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .canvas-wrap {
+      position: relative;
+      overflow: hidden;
+      border-radius: 16px;
+      border: 1px solid rgba(148,163,184,0.4);
+      background: #020617;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px;
+    }
+    .canvas-fixed {
+      width: 260px;
+      height: 260px;
+      display: block;
+    }
+    .canvas-compact {
+      width: 220px;
+      height: 140px;
+      display: block;
+    }
+    .hud-card {
+      backdrop-filter: blur(10px);
+      background: rgba(15,23,42,0.95);
+      box-shadow: 0 0 25px rgba(56,189,248,0.35);
+    }
+    .hud-draggable {
+      cursor: move;
+      touch-action: none;
+      user-select: none;
+    }
+    #toast {
+      transition: opacity .2s ease, transform .2s ease;
+    }
+    .spinner {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      border: 2px solid rgba(148,163,184,0.4);
+      border-top-color: #22d3ee;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .ticker-inner {
+      animation: ticker 30s linear infinite;
+      white-space: nowrap;
+    }
+    @keyframes ticker {
+      0% { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100">
+<div class="flex min-h-screen">
+
+  <!-- SIDEBAR -->
+  <aside class="hidden md:flex w-64 flex-col border-r border-slate-800 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900">
+    <div class="px-5 pt-5 pb-4 flex items-center justify-between">
+      <div>
+        <div class="text-[10px] tracking-[0.25em] uppercase text-sky-400">Smart Outing</div>
+        <div class="text-lg font-semibold mt-1">Admin Control</div>
+      </div>
+      <div class="w-8 h-8 rounded-full border border-sky-500 flex items-center justify-center text-sky-400">
+        🛡
+      </div>
+    </div>
+
+    <nav class="flex-1 px-3 space-y-1 text-sm">
+      <button id="navDashboard" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-sky-400 text-lg">▰</span><span>Dashboard</span>
+      </button>
+      <button id="navPermissions" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-sky-400 text-lg">✉</span><span>Permissions</span>
+      </button>
+      <button id="navAlerts" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-rose-400 text-lg">!</span><span>Alerts</span>
+      </button>
+      <button id="navUnauthorized" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-amber-400 text-lg">⚠</span><span>Unauthorized</span>
+      </button>
+      <button id="navUndefined" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-violet-400 text-lg">?</span><span>Undefined Faces</span>
+      </button>
+      <button id="navTracking" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-emerald-400 text-lg">📍</span><span>Live Tracking</span>
+      </button>
+      <button id="navAIInsights" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-fuchsia-400 text-lg">✨</span><span>AI Insights</span>
+      </button>
+      <button id="navSystem" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-800/80">
+        <span class="text-slate-300 text-lg">⚙</span><span>System & Reports</span>
+      </button>
+    </nav>
+
+    <div class="px-4 py-4 border-t border-slate-800 text-xs text-slate-400">
+      Logged in as
+      <span id="adminNameHint" class="text-sky-300 ml-1">admin@college.edu</span>
+      <button id="logoutBtn" class="mt-2 w-full px-3 py-1.5 rounded-lg border border-slate-600 hover:bg-slate-800 text-slate-100 text-xs">
+        Logout
+      </button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="flex-1 flex flex-col bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900">
+
+    <!-- MOBILE HEADER -->
+    <header class="md:hidden px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+      <div>
+        <div class="text-[10px] tracking-[0.25em] uppercase text-sky-400">Smart Outing</div>
+        <div class="text-lg font-semibold">Admin Control</div>
+      </div>
+      <button id="logoutBtnMobile" class="px-3 py-1 text-xs rounded-lg bg-rose-600 hover:bg-rose-500">Logout</button>
+    </header>
+
+    <!-- LIVE TICKER -->
+    <div class="border-b border-slate-800 bg-slate-950/80">
+      <div class="flex items-center gap-3 px-4 py-2 text-[11px] text-slate-300 overflow-hidden">
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/40">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+          LIVE FEED
+        </span>
+        <div class="relative flex-1 overflow-hidden">
+          <div id="tickerInner" class="ticker-inner flex gap-8"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRAGGABLE HUD -->
+    <div id="hudContainer" class="fixed right-4 top-24 z-20 hidden md:block hud-draggable">
+      <div class="hud-card rounded-2xl px-4 py-3 text-[11px] border border-slate-700">
+        <div class="flex items-center justify-between mb-1">
+          <div class="text-[10px] tracking-[0.25em] uppercase text-slate-300">H U D</div>
+          <div class="flex items-center gap-1 text-[10px] text-emerald-300">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-x-5 gap-y-1">
+          <div>IN Today: <span id="hudIn" class="font-semibold text-emerald-300">0</span></div>
+          <div>OUT Today: <span id="hudOut" class="font-semibold text-sky-300">0</span></div>
+          <div>Late: <span id="hudLate" class="font-semibold text-rose-300">0</span></div>
+          <div>Unauthorized: <span id="hudUnauth" class="font-semibold text-amber-300">0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <div class="w-full max-w-6xl p-4 sm:p-6 lg:p-8 space-y-6">
+
+      <!-- HEADER -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-semibold flex items-center gap-2">
+            Dashboard
+            <span class="px-2 py-0.5 rounded-full border border-sky-500 text-[10px] tracking-[0.18em] uppercase text-sky-300">
+              Control Room
+            </span>
+          </h1>
+          <p class="text-xs md:text-sm text-slate-400 mt-1">
+            Live AI monitoring for face recognition, permissions, tracking & security incidents.
+          </p>
+        </div>
+        <div class="flex items-center gap-3">
+          <button id="refreshBtn" class="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-slate-700 text-xs hover:bg-slate-800">
+            <span id="refreshSpinner" class="spinner hidden"></span>
+            <span>Refresh</span>
+          </button>
+          <span class="text-[11px] text-slate-500">Auto-sync every 15 seconds</span>
+        </div>
+      </div>
+
+      <!-- DASHBOARD SECTION -->
+      <section id="sectionDashboard" class="space-y-5">
+
+        <!-- TOP STATS -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div class="rounded-2xl bg-gradient-to-br from-sky-950 via-slate-950 to-slate-950 border border-sky-700/70 p-4">
+            <div class="text-[11px] text-sky-300">Events Today</div>
+            <div id="statEvents" class="mt-1 text-2xl font-semibold text-sky-100">0</div>
+            <div class="text-[11px] text-slate-400 mt-1">All cameras • all gates</div>
+          </div>
+          <div class="rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-950 border border-emerald-700/70 p-4">
+            <div class="text-[11px] text-emerald-300">On-Time</div>
+            <div id="statOntime" class="mt-1 text-2xl font-semibold text-emerald-100">0</div>
+            <div class="text-[11px] text-slate-400 mt-1">Within permission window</div>
+          </div>
+          <div class="rounded-2xl bg-gradient-to-br from-rose-950 via-slate-950 to-slate-950 border border-rose-700/70 p-4">
+            <div class="text-[11px] text-rose-300">Unauthorized</div>
+            <div id="statUnauth" class="mt-1 text-2xl font-semibold text-rose-100">0</div>
+            <div class="text-[11px] text-slate-400 mt-1">Detected by AI watchdog</div>
+          </div>
+          <div class="rounded-2xl bg-gradient-to-br from-violet-950 via-slate-950 to-slate-950 border border-violet-700/70 p-4">
+            <div class="text-[11px] text-violet-300">Undefined</div>
+            <div id="statUndefined" class="mt-1 text-2xl font-semibold text-violet-100">0</div>
+            <div class="text-[11px] text-slate-400 mt-1">Unknown or unlinked faces</div>
+          </div>
+        </div>
+
+        <!-- EVENT INTELLIGENCE -->
+        <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-[11px] tracking-[0.2em] uppercase text-fuchsia-400">Event Intelligence (Today)</div>
+              <div class="text-[11px] text-slate-400">Compact summary of AI security events.</div>
+            </div>
+            <button id="clearEvents" class="px-3 py-1.5 rounded-lg border border-rose-500/70 text-rose-300 text-[11px] hover:bg-rose-500/10">
+              Clear Events
+            </button>
+          </div>
+
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-[11px]">
+            <div class="rounded-xl border border-sky-700/60 bg-sky-950/40 px-3 py-2">
+              <div class="text-slate-300">Events</div>
+              <div id="eimTotalEvents" class="mt-1 text-lg font-semibold text-sky-100">0</div>
+            </div>
+            <div class="rounded-xl border border-rose-700/60 bg-rose-950/40 px-3 py-2">
+              <div class="text-rose-200">Unauthorized</div>
+              <div id="eimUnauth" class="mt-1 text-lg font-semibold text-rose-100">0</div>
+            </div>
+            <div class="rounded-xl border border-violet-700/60 bg-violet-950/40 px-3 py-2">
+              <div class="text-violet-200">Unknown</div>
+              <div id="eimUnknown" class="mt-1 text-lg font-semibold text-violet-100">0</div>
+            </div>
+            <div class="rounded-xl border border-amber-700/60 bg-amber-950/40 px-3 py-2">
+              <div class="text-amber-200">Late</div>
+              <div id="eimLate" class="mt-1 text-lg font-semibold text-amber-100">0</div>
+            </div>
+          </div>
+
+          <div class="text-[11px] text-slate-400">
+            Risk summary:
+            <span class="text-rose-300 ml-2">High: <span id="eimRiskHigh">0</span></span>
+            <span class="text-amber-300 ml-3">Medium: <span id="eimRiskMedium">0</span></span>
+            <span class="text-emerald-300 ml-3">Low: <span id="eimRiskLow">0</span></span>
+          </div>
+        </div>
+
+        <!-- MOTION PULSE + RADAR -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- MOTION PULSE TILE -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 flex flex-col items-center">
+            <div class="text-[11px] tracking-[0.2em] uppercase text-fuchsia-400 mb-2">Motion Pulse Map</div>
+            <div class="canvas-wrap">
+              <canvas id="pulseCanvas" class="canvas-compact"></canvas>
+            </div>
+            <div class="text-[10px] text-slate-500 mt-2 flex flex-col gap-0.5 text-center">
+              <span>Dots = latest movements across all gates.</span>
+              <span>Green = normal • Yellow = unknown • Red = unauthorized</span>
+            </div>
+          </div>
+
+          <!-- RADAR -->
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 flex flex-col items-center">
+            <div class="text-[11px] tracking-[0.2em] uppercase text-emerald-400 mb-2">Neon Radar</div>
+            <div class="canvas-wrap">
+              <canvas id="radarCanvas" class="canvas-fixed"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- TIMELINE + TODAY SUMMARY -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+            <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">
+              Incident Playback (24h)
+            </div>
+            <div class="text-[11px] text-slate-400 mb-2">Slide to rewind timeline.</div>
+            <input id="replaySlider" type="range" min="0" max="1439" value="1439" class="w-full">
+            <div class="flex justify-between text-[11px] text-slate-400 mt-2">
+              <span id="replayTime">Now</span>
+              <span id="replayEvents">0 events in view</span>
+            </div>
+            <div id="securityTimeline" class="mt-2 max-h-56 overflow-y-auto text-[11px] space-y-1"></div>
+          </div>
+
+          <div class="md:col-span-2 rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+            <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">
+              Today Movement Summary
+            </div>
+            <div class="text-[11px] text-slate-400 mb-2">
+              First & last sightings for each staff.
+            </div>
+            <div id="todaySummary" class="space-y-1 max-h-56 overflow-y-auto text-[11px]"></div>
+          </div>
+        </div>
+
+      </section>
+
+      <!-- PERMISSIONS -->
+      <section id="sectionPermissions" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Permissions Queue</div>
+            <div class="text-[11px] text-slate-400">Approve / reject outing requests & live status.</div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-950/80 overflow-hidden">
+          <table class="min-w-full text-xs">
+            <thead class="bg-slate-900/80 text-slate-300">
+              <tr>
+                <th class="px-3 py-2 text-left">Student</th>
+                <th class="px-3 py-2 text-left">UID</th>
+                <th class="px-3 py-2 text-left">Reason</th>
+                <th class="px-3 py-2 text-left">From</th>
+                <th class="px-3 py-2 text-left">To</th>
+                <th class="px-3 py-2 text-left">Status</th>
+                <th class="px-3 py-2 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="permTableBody" class="divide-y divide-slate-800"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ALERTS -->
+      <section id="sectionAlerts" class="hidden space-y-3">
+        <div class="flex items-center justify-between">
+          <div>
+            <div class="text-[11px] tracking-[0.2em] uppercase text-rose-400">Alerts</div>
+            <div class="text-[11px] text-slate-400">
+              Generated for unauthorized, late returns & anomalies.
+            </div>
+          </div>
+          <button id="clearAlertsBtn" class="px-3 py-1.5 rounded-lg border border-slate-700 text-[11px] hover:bg-slate-800">
+            Clear all
+          </button>
+        </div>
+        <div id="alertsList" class="space-y-2 text-xs max-h-96 overflow-y-auto"></div>
+      </section>
+
+      <!-- UNAUTHORIZED -->
+      <section id="sectionUnauthorized" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] uppercase text-amber-400">Unauthorized Faces</div>
+          <div class="text-[11px] text-slate-400">Events with no valid permission.</div>
+        </div>
+        <div id="unauthList" class="space-y-2 text-xs max-h-96 overflow-y-auto"></div>
+      </section>
+
+      <!-- UNDEFINED -->
+      <section id="sectionUndefined" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] uppercase text-violet-400">Undefined Faces</div>
+          <div class="text-[11px] text-slate-400">Faces not mapped to staff IDs.</div>
+        </div>
+        <div id="undefinedList" class="space-y-2 text-xs max-h-96 overflow-y-auto"></div>
+      </section>
+
+      <!-- TRACKING -->
+      <section id="sectionTracking" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] uppercase text-emerald-400">Live Tracking (Today)</div>
+          <div class="text-[11px] text-slate-400">
+            Who is currently out and last exit time.
+          </div>
+        </div>
+        <div id="trackingList" class="space-y-2 text-xs max-h-96 overflow-y-auto"></div>
+      </section>
+
+      <!-- AI INSIGHTS -->
+      <section id="sectionAIInsights" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] uppercase text-fuchsia-400">AI Insights</div>
+          <div class="text-[11px] text-slate-400">
+            Behaviour patterns from recent data.
+          </div>
+        </div>
+        <div id="aiInsights" class="space-y-2 text-xs"></div>
+      </section>
+
+      <!-- SYSTEM -->
+      <section id="sectionSystem" class="hidden space-y-3">
+        <div>
+          <div class="text-[11px] tracking-[0.2em] uppercase text-slate-400">System & Reports</div>
+          <div class="text-[11px] text-slate-400">
+            Basic system health and counts.
+          </div>
+        </div>
+        <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 text-xs space-y-1">
+          <div>Admin DB: <span class="text-sky-300">admin-faecb</span></div>
+          <div>Staff DB: <span class="text-sky-300">staff-outing</span></div>
+          <div id="systemCounts" class="text-slate-400"></div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<!-- TOAST -->
+<div id="toast" class="hidden fixed bottom-4 right-4 z-30 px-4 py-2 rounded-xl bg-slate-900/95 border border-slate-700 text-xs shadow-lg">
+  Toast
+</div>
+
+<!-- FAB -->
+<div class="fixed bottom-6 right-6 z-30">
+  <div id="fabMenu" class="hidden bg-slate-900/95 border border-slate-700 rounded-2xl shadow-xl p-2 space-y-1 text-xs">
+    <button id="fabGoDashboard" class="w-full px-3 py-1.5 rounded-lg hover:bg-slate-800 text-left">Dashboard</button>
+    <button id="fabGoPermissions" class="w-full px-3 py-1.5 rounded-lg hover:bg-slate-800 text-left">Permissions</button>
+    <button id="fabGoAlerts" class="w-full px-3 py-1.5 rounded-lg hover:bg-slate-800 text-left">Alerts</button>
+  </div>
+  <button id="fabBtn" class="w-11 h-11 rounded-full bg-gradient-to-tr from-sky-500 to-fuchsia-500 flex items-center justify-center shadow-lg shadow-sky-500/40">
+    <span class="text-2xl text-white">+</span>
+  </button>
+</div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getDatabase, ref, onValue, update, remove, get } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+  // ---------- FIREBASE CONFIG ----------
+  const adminConfig = {
+    apiKey: "AIzaSyCivrGSFxi_5amfDbX-N15uL6kZqn8gdvc",
+    authDomain: "admin-faecb.firebaseapp.com",
+    databaseURL: "https://admin-faecb-default-rtdb.firebaseio.com",
+    projectId: "admin-faecb",
+    storageBucket: "admin-faecb.appspot.com",
+    messagingSenderId: "994094851836",
+    appId: "1:994094851836:web:b70663258641833abc5979"
+  };
+  const staffConfig = {
+    apiKey: "AIzaSyBaVTNePTudTNwaBLSg_tnXJdVNYImhLtA",
+    authDomain: "staff-outing-8754d.firebaseapp.com",
+    databaseURL: "https://staff-outing-8754d-default-rtdb.firebaseio.com",
+    projectId: "staff-outing-8754d",
+    storageBucket: "staff-outing-8754d.appspot.com",
+    messagingSenderId: "626313854211",
+    appId: "1:626313854211:web:d1ba89336c51125790fd36"
+  };
+
+  const adminApp = initializeApp(adminConfig, "admin");
+  let staffApp;
+  try { staffApp = initializeApp(staffConfig, "staffMirror"); }
+  catch (e) { staffApp = adminApp; }
+
+  const adminDb = getDatabase(adminApp);
+  const staffDb = getDatabase(staffApp); // kept if you use later
+
+  // ---------- TOAST ----------
+  const toastEl = document.getElementById("toast");
+  function toast(msg, duration = 2500) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.remove("hidden");
+    toastEl.style.opacity = "1";
+    toastEl.style.transform = "translateY(0)";
+    setTimeout(() => {
+      toastEl.style.opacity = "0";
+      toastEl.style.transform = "translateY(8px)";
+      setTimeout(() => toastEl.classList.add("hidden"), 180);
+    }, duration);
+  }
+
+  // ---------- AUTH HINT / LOGOUT ----------
+  try {
+    const adminUser = JSON.parse(localStorage.getItem("adminUser") || "{}");
+    if (adminUser && adminUser.email && document.getElementById("adminNameHint")) {
+      document.getElementById("adminNameHint").textContent = adminUser.email;
+    }
+  } catch (e) {}
+
+  const doLogout = () => {
+    localStorage.removeItem("adminUser");
+    location.href = "login-admin.html";
+  };
+  const logoutBtn = document.getElementById("logoutBtn");
+  const logoutBtnMobile = document.getElementById("logoutBtnMobile");
+  if (logoutBtn) logoutBtn.onclick = doLogout;
+  if (logoutBtnMobile) logoutBtnMobile.onclick = doLogout;
+
+  // ---------- NAV ----------
+  const sections = {
+    Dashboard: document.getElementById("sectionDashboard"),
+    Permissions: document.getElementById("sectionPermissions"),
+    Alerts: document.getElementById("sectionAlerts"),
+    Unauthorized: document.getElementById("sectionUnauthorized"),
+    Undefined: document.getElementById("sectionUndefined"),
+    Tracking: document.getElementById("sectionTracking"),
+    AIInsights: document.getElementById("sectionAIInsights"),
+    System: document.getElementById("sectionSystem")
+  };
+
+  function showTab(tab) {
+    Object.values(sections).forEach(s => s && s.classList.add("hidden"));
+    const el = sections[tab] || sections.Dashboard;
+    if (el) el.classList.remove("hidden");
+  }
+
+  const navDashboard = document.getElementById("navDashboard");
+  const navPermissions = document.getElementById("navPermissions");
+  const navAlerts = document.getElementById("navAlerts");
+  const navUnauthorized = document.getElementById("navUnauthorized");
+  const navUndefined = document.getElementById("navUndefined");
+  const navTracking = document.getElementById("navTracking");
+  const navAIInsights = document.getElementById("navAIInsights");
+  const navSystem = document.getElementById("navSystem");
+
+  if (navDashboard) navDashboard.onclick = () => showTab("Dashboard");
+  if (navPermissions) navPermissions.onclick = () => showTab("Permissions");
+  if (navAlerts) navAlerts.onclick = () => showTab("Alerts");
+  if (navUnauthorized) navUnauthorized.onclick = () => showTab("Unauthorized");
+  if (navUndefined) navUndefined.onclick = () => showTab("Undefined");
+  if (navTracking) navTracking.onclick = () => showTab("Tracking");
+  if (navAIInsights) navAIInsights.onclick = () => showTab("AIInsights");
+  if (navSystem) navSystem.onclick = () => showTab("System");
+  showTab("Dashboard");
+
+  // ---------- FAB ----------
+  const fabBtn = document.getElementById("fabBtn");
+  const fabMenu = document.getElementById("fabMenu");
+  const fabGoDashboard = document.getElementById("fabGoDashboard");
+  const fabGoPermissions = document.getElementById("fabGoPermissions");
+  const fabGoAlerts = document.getElementById("fabGoAlerts");
+
+  function toggleFab() {
+    if (!fabMenu) return;
+    fabMenu.classList.toggle("hidden");
+  }
+  if (fabBtn) fabBtn.onclick = toggleFab;
+  if (fabGoDashboard) fabGoDashboard.onclick = () => { showTab("Dashboard"); toggleFab(); };
+  if (fabGoPermissions) fabGoPermissions.onclick = () => { showTab("Permissions"); toggleFab(); };
+  if (fabGoAlerts) fabGoAlerts.onclick = () => { showTab("Alerts"); toggleFab(); };
+
+  // ---------- ELEMENT REFS ----------
+  const statEventsEl = document.getElementById("statEvents");
+  const statOntimeEl = document.getElementById("statOntime");
+  const statUnauthEl = document.getElementById("statUnauth");
+  const statUndefinedEl = document.getElementById("statUndefined");
+
+  const hudInEl = document.getElementById("hudIn");
+  const hudOutEl = document.getElementById("hudOut");
+  const hudLateEl = document.getElementById("hudLate");
+  const hudUnauthEl = document.getElementById("hudUnauth");
+  const hudContainer = document.getElementById("hudContainer");
+
+  const radarCanvas = document.getElementById("radarCanvas");
+  const pulseCanvas = document.getElementById("pulseCanvas");
+
+  const eimTotalEventsEl = document.getElementById("eimTotalEvents");
+  const eimUnauthEl = document.getElementById("eimUnauth");
+  const eimUnknownEl = document.getElementById("eimUnknown");
+  const eimLateEl = document.getElementById("eimLate");
+  const eimRiskHighEl = document.getElementById("eimRiskHigh");
+  const eimRiskMediumEl = document.getElementById("eimRiskMedium");
+  const eimRiskLowEl = document.getElementById("eimRiskLow");
+
+  const replaySlider = document.getElementById("replaySlider");
+  const replayTimeEl = document.getElementById("replayTime");
+  const replayEventsEl = document.getElementById("replayEvents");
+  const securityTimelineEl = document.getElementById("securityTimeline");
+  const todaySummaryEl = document.getElementById("todaySummary");
+
+  const tickerInner = document.getElementById("tickerInner");
+  const permTableBody = document.getElementById("permTableBody");
+  const alertsList = document.getElementById("alertsList");
+  const unauthList = document.getElementById("unauthList");
+  const undefinedList = document.getElementById("undefinedList");
+  const trackingList = document.getElementById("trackingList");
+  const aiInsightsEl = document.getElementById("aiInsights");
+  const systemCountsEl = document.getElementById("systemCounts");
+
+  const refreshBtn = document.getElementById("refreshBtn");
+  const refreshSpinner = document.getElementById("refreshSpinner");
+  const clearEventsBtn = document.getElementById("clearEvents");
+  const clearAlertsBtn = document.getElementById("clearAlertsBtn");
+
+  // ---------- STATE ----------
+  let allEvents = [];
+  const knownStaffSet = new Set();
+  let todayKey = new Date().toISOString().slice(0,10);
+
+  function pad(n) { return n.toString().padStart(2, "0"); }
+  function fmtTime(dateStr) {
+    const d = new Date(dateStr);
+    if (isNaN(d)) return dateStr || "";
+    let h = d.getHours();
+    const m = pad(d.getMinutes());
+    const ampm = h >= 12 ? "pm" : "am";
+    h = h % 12; if (!h) h = 12;
+    return `${h}:${m} ${ampm}`;
+  }
+
+  function flattenFaceEvents(data) {
+    const out = [];
+    if (!data) return out;
+    Object.entries(data).forEach(([uid, dates]) => {
+      Object.entries(dates || {}).forEach(([date, logs]) => {
+        Object.entries(logs || {}).forEach(([key, ev]) => {
+          out.push({ ...ev, uid, date, key });
+        });
+      });
+    });
+    return out;
+  }
+
+  // ---------- PERMISSIONS ----------
+  function renderPermissions(perms) {
+    if (!permTableBody) return;
+    permTableBody.innerHTML = "";
+    const entries = Object.entries(perms || {}).sort(
+      (a,b) => (b[1].createdAt || "").localeCompare(a[1].createdAt || "")
+    );
+    for (const [id, p] of entries) {
+      const tr = document.createElement("tr");
+      tr.className = "hover:bg-slate-900/60";
+      const from = (p.fromDate || "") + " " + (p.fromTime || "");
+      const to = (p.toDate || "") + " " + (p.toTime || "");
+      tr.innerHTML = `
+        <td class="px-3 py-2">${p.name || "-"}</td>
+        <td class="px-3 py-2 text-slate-300">${p.uid || "-"}</td>
+        <td class="px-3 py-2">${p.reason || "-"}</td>
+        <td class="px-3 py-2">${from}</td>
+        <td class="px-3 py-2">${to}</td>
+        <td class="px-3 py-2">
+          <span class="px-2 py-0.5 rounded-full text-[10px] border ${
+            p.status === "approved" ? "border-emerald-500 text-emerald-300" :
+            p.status === "rejected" ? "border-rose-500 text-rose-300" :
+            "border-slate-500 text-slate-300"
+          }">${p.status || "pending"}</span>
+        </td>
+        <td class="px-3 py-2 text-right space-x-1">
+          <button data-id="${id}" data-act="approve"
+            class="px-2 py-0.5 rounded border border-emerald-500/70 text-emerald-200 text-[10px] hover:bg-emerald-500/10">
+            Approve
+          </button>
+          <button data-id="${id}" data-act="reject"
+            class="px-2 py-0.5 rounded border border-rose-500/70 text-rose-200 text-[10px] hover:bg-rose-500/10">
+            Reject
+          </button>
+        </td>
+      `;
+      permTableBody.appendChild(tr);
+    }
+  }
+
+  if (permTableBody) {
+  permTableBody.addEventListener("click", async (e) => {
+    const btn = e.target.closest("button[data-id]");
+    if (!btn) return;
+
+    const id = btn.getAttribute("data-id");
+    const act = btn.getAttribute("data-act");
+    const status = act === "approve" ? "approved" : "rejected";
+
+    const payload = {
+      status,
+      updatedAt: new Date().toISOString()
+    };
+
+    // Update ADMIN DB
+    try {
+      await update(ref(adminDb, "permissions/" + id), payload);
+    } catch (err) {
+      console.error("Admin DB update failed:", err);
+    }
+
+    // Update STAFF DB
+    try {
+      await update(ref(staffDb, "permissions/" + id), payload);
+    } catch (err) {
+      console.error("Staff DB update failed:", err);
+    }
+
+    toast(`Permission ${status}`);
+  });
+}
+
+  // ---------- ALERTS ----------
+  function renderAlerts(alerts) {
+    if (!alertsList) return;
+    alertsList.innerHTML = "";
+    const entries = Object.entries(alerts || {}).sort(
+      (a,b)=> (b[1].time||"").localeCompare(a[1].time||"")
+    );
+    for (const [id, a] of entries) {
+      const div = document.createElement("div");
+      div.className = "rounded-xl border border-slate-700 bg-slate-900/70 px-3 py-2 flex justify-between gap-3";
+      div.innerHTML = `
+        <div>
+          <div class="text-[11px] ${
+            a.type === "unauthorized" ? "text-amber-300" :
+            a.type === "late" ? "text-rose-300" :
+            "text-sky-300"
+          }">${a.title || "Alert"}</div>
+          <div class="text-[11px] text-slate-400">${a.message || ""}</div>
+        </div>
+        <div class="text-[10px] text-slate-500 whitespace-nowrap ml-2">${fmtTime(a.time || "")}</div>
+      `;
+      alertsList.appendChild(div);
+    }
+  }
+
+  if (clearAlertsBtn) {
+    clearAlertsBtn.onclick = async () => {
+      await remove(ref(adminDb, "alerts"));
+      toast("Alerts cleared");
+    };
+  }
+
+  // ---------- UNAUTHORIZED / UNDEFINED ----------
+  function renderUnauth(events) {
+    if (!unauthList) return;
+    unauthList.innerHTML = "";
+    const filtered = events.filter(ev =>
+      (ev.lateness || "").toLowerCase() === "unauthorized" ||
+      (ev.type || "").toLowerCase().includes("unauthor")
+    );
+    filtered.sort((a,b)=> new Date(b.time) - new Date(a.time));
+    filtered.forEach(ev => {
+      const div = document.createElement("div");
+      div.className = "rounded-xl border border-amber-600/70 bg-amber-950/40 px-3 py-2 flex justify-between gap-3";
+      div.innerHTML = `
+        <div>
+          <div class="text-[11px] text-amber-200">
+            Unauthorized: ${ev.name || ev.uid || "Unknown"}
+          </div>
+          <div class="text-[11px] text-amber-100/90">
+            ${ev.camera_id || "Camera"} • ${ev.type || ""}
+          </div>
+        </div>
+        <div class="text-[10px] text-amber-200/80 whitespace-nowrap">
+          ${fmtTime(ev.time || "")}
+        </div>
+      `;
+      unauthList.appendChild(div);
+    });
+  }
+
+  function renderUndefined(events) {
+    if (!undefinedList) return;
+    undefinedList.innerHTML = "";
+    const filtered = events.filter(ev => !ev.uid || ev.uid === "unknown");
+    filtered.sort((a,b)=> new Date(b.time) - new Date(a.time));
+    filtered.forEach(ev => {
+      const div = document.createElement("div");
+      div.className = "rounded-xl border border-violet-600/70 bg-violet-950/40 px-3 py-2 flex justify-between gap-3";
+      div.innerHTML = `
+        <div>
+          <div class="text-[11px] text-violet-200">Undefined face</div>
+          <div class="text-[11px] text-violet-100/90">
+            ${ev.camera_id || "Camera"} • ${ev.type || ""}
+          </div>
+        </div>
+        <div class="text-[10px] text-violet-200/80 whitespace-nowrap">
+          ${fmtTime(ev.time || "")}
+        </div>
+      `;
+      undefinedList.appendChild(div);
+    });
+  }
+
+  // ---------- TRACKING ----------
+  function renderTracking(events) {
+    if (!trackingList) return;
+    trackingList.innerHTML = "";
+    const byUid = {};
+    events.forEach(ev => {
+      const uid = ev.uid || "unknown";
+      if (!byUid[uid]) byUid[uid] = [];
+      byUid[uid].push(ev);
+    });
+    Object.values(byUid).forEach(list => list.sort((a,b)=> new Date(a.time)-new Date(b.time)));
+
+    let outCount = 0;
+
+    Object.entries(byUid).forEach(([uid, logs]) => {
+      const name = logs[0].name || uid;
+      const last = logs[logs.length-1];
+      const isOut = (last.type || "").toLowerCase().includes("exit");
+      if (!isOut) return;
+
+      outCount++;
+      const now = new Date();
+      const lastTime = new Date(last.time || "");
+      let minsOutLabel = "";
+      if (!isNaN(lastTime)) {
+        const diffMin = Math.max(0, Math.round((now - lastTime) / 60000));
+        minsOutLabel = ` • Out for ~${diffMin} min`;
+      }
+
+      const card = document.createElement("div");
+      card.className = "rounded-2xl border border-sky-700/60 bg-sky-950/40 px-3 py-2 flex justify-between gap-3";
+      card.innerHTML = `
+        <div>
+          <div class="text-[11px] text-sky-100">${name}</div>
+          <div class="text-[11px] text-sky-200/80">
+            Last exit at ${fmtTime(last.time || "")}${minsOutLabel}
+          </div>
+        </div>
+        <div class="text-[10px] text-sky-300 whitespace-nowrap self-center">OUT</div>
+      `;
+      trackingList.appendChild(card);
+    });
+
+    if (!outCount) {
+      const empty = document.createElement("div");
+      empty.className = "rounded-2xl border border-slate-700 bg-slate-900/70 px-3 py-2 text-[11px] text-slate-400";
+      empty.textContent = "All tracked staff are currently inside campus.";
+      trackingList.appendChild(empty);
+    }
+  }
+
+  // ---------- AI INSIGHTS ----------
+  function renderAIInsights(events) {
+    if (!aiInsightsEl) return;
+    aiInsightsEl.innerHTML = "";
+    if (!events.length) {
+      aiInsightsEl.innerHTML = `<div class="text-[11px] text-slate-400">Not enough data yet. Keep system running to see behaviour patterns.</div>`;
+      return;
+    }
+    const byUid = {};
+    events.forEach(ev => {
+      const uid = ev.uid || "unknown";
+      if (!byUid[uid]) byUid[uid] = [];
+      byUid[uid].push(ev);
+    });
+
+    const insights = [];
+    Object.entries(byUid).forEach(([uid, logs]) => {
+      logs.sort((a,b)=> new Date(a.time)-new Date(b.time));
+      const name = logs[0].name || uid;
+      const lateCount = logs.filter(e => (e.lateness || "").toLowerCase() === "late").length;
+      const unauthCount = logs.filter(e => (e.lateness || "").toLowerCase() === "unauthorized").length;
+      const total = logs.length;
+      if (lateCount >= 2 || unauthCount >= 1) {
+        insights.push({ uid, name, lateCount, unauthCount, total });
+      }
+    });
+
+    if (!insights.length) {
+      aiInsightsEl.innerHTML = `<div class="text-[11px] text-emerald-300">No high-risk patterns detected in recent data.</div>`;
+      return;
+    }
+
+    insights.sort((a,b)=> (b.unauthCount + b.lateCount) - (a.unauthCount + a.lateCount));
+    insights.slice(0,10).forEach(ins => {
+      const div = document.createElement("div");
+      div.className = "rounded-2xl border border-fuchsia-600/60 bg-fuchsia-950/30 px-3 py-2 flex justify-between gap-3";
+      div.innerHTML = `
+        <div>
+          <div class="text-[11px] text-fuchsia-100">${ins.name}</div>
+          <div class="text-[11px] text-fuchsia-200/90">
+            ${ins.lateCount} late • ${ins.unauthCount} unauthorized • ${ins.total} events
+          </div>
+        </div>
+        <div class="text-[10px] text-fuchsia-200/80 whitespace-nowrap self-center">Watch</div>
+      `;
+      aiInsightsEl.appendChild(div);
+    });
+  }
+
+  // ---------- TICKER ----------
+  function renderTicker(events) {
+    if (!tickerInner) return;
+    tickerInner.innerHTML = "";
+    const recent = [...events].sort((a,b)=> new Date(b.time)-new Date(a.time)).slice(0,25);
+    recent.forEach(ev => {
+      const span = document.createElement("span");
+      span.className = "inline-flex items-center gap-2 text-[11px]";
+      const t = (ev.type || "").toLowerCase();
+      const late = (ev.lateness || "").toLowerCase();
+      let icon = "✔";
+      let color = "text-emerald-300";
+      if (late === "unauthorized" || t.includes("unauthor")) { icon = "⚠"; color = "text-amber-300"; }
+      else if (late === "late") { icon = "⏰"; color = "text-rose-300"; }
+      span.innerHTML = `
+        <span class="${color}">${icon}</span>
+        <span>${fmtTime(ev.time || "")} — ${ev.name || ev.uid || "Unknown"} : ${ev.type || ""}</span>
+      `;
+      tickerInner.appendChild(span);
+    });
+  }
+
+  // ---------- EVENT INTELLIGENCE ----------
+  function renderEventIntel(events) {
+    const todayEvents = events.filter(ev => (ev.date || "").startsWith(todayKey));
+    const totalToday = todayEvents.length;
+    const unauth = todayEvents.filter(e =>
+      (e.lateness || "").toLowerCase() === "unauthorized" ||
+      (e.type || "").toLowerCase().includes("unauthor")
+    ).length;
+    const unknown = todayEvents.filter(e => !e.uid || e.uid === "unknown").length;
+    const late = todayEvents.filter(e => (e.lateness || "").toLowerCase() === "late").length;
+
+    if (eimTotalEventsEl) eimTotalEventsEl.textContent = totalToday;
+    if (eimUnauthEl) eimUnauthEl.textContent = unauth;
+    if (eimUnknownEl) eimUnknownEl.textContent = unknown;
+    if (eimLateEl) eimLateEl.textContent = late;
+
+    let high = 0, med = 0, low = 0;
+    todayEvents.forEach(ev => {
+      const isUnauth = (ev.lateness || "").toLowerCase() === "unauthorized" ||
+                       (ev.type || "").toLowerCase().includes("unauthor");
+      const isLate = (ev.lateness || "").toLowerCase() === "late";
+      const isUnknown = !ev.uid || ev.uid === "unknown";
+      if (isUnauth) high++;
+      else if (isLate || isUnknown) med++;
+      else low++;
+    });
+
+    if (eimRiskHighEl) eimRiskHighEl.textContent = high;
+    if (eimRiskMediumEl) eimRiskMediumEl.textContent = med;
+    if (eimRiskLowEl) eimRiskLowEl.textContent = low;
+  }
+
+  // ---------- RADAR ----------
+  let radarAngle = 0;
+  function drawRadarFrame() {
+    if (!radarCanvas) return;
+    const ctx = radarCanvas.getContext("2d");
+    const w = radarCanvas.width = 260;
+    const h = radarCanvas.height = 260;
+    const cx = w / 2;
+    const cy = h / 2;
+    const r = Math.min(w, h) / 2 - 12;
+
+    ctx.clearRect(0,0,w,h);
+
+    const bg = ctx.createRadialGradient(cx, cy, 0, cx, cy, r + 20);
+    bg.addColorStop(0, "rgba(15,23,42,0.9)");
+    bg.addColorStop(0.6, "rgba(30,64,175,0.9)");
+    bg.addColorStop(1, "rgba(15,23,42,1)");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0,0,w,h);
+
+    ctx.strokeStyle = "rgba(148,163,184,0.4)";
+    ctx.lineWidth = 1;
+    for (let i=1;i<=4;i++) {
+      ctx.beginPath();
+      ctx.arc(cx, cy, (r*i)/4, 0, Math.PI*2);
+      ctx.stroke();
+    }
+
+    ctx.beginPath();
+    ctx.moveTo(cx - r, cy);
+    ctx.lineTo(cx + r, cy);
+    ctx.moveTo(cx, cy - r);
+    ctx.lineTo(cx, cy + r);
+    ctx.strokeStyle = "rgba(31,41,55,0.8)";
+    ctx.stroke();
+
+    const sweepWidthDeg = 40;
+    const startDeg = radarAngle - sweepWidthDeg/2;
+    const endDeg = radarAngle + sweepWidthDeg/2;
+    const startRad = startDeg * Math.PI / 180;
+    const endRad = endDeg * Math.PI / 180;
+
+    const sweepGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+    sweepGrad.addColorStop(0, "rgba(56,189,248,0.55)");
+    sweepGrad.addColorStop(0.5, "rgba(129,140,248,0.35)");
+    sweepGrad.addColorStop(1, "rgba(56,189,248,0)");
+
+    ctx.beginPath();
+    ctx.moveTo(cx,cy);
+    ctx.arc(cx,cy,r,startRad,endRad);
+    ctx.closePath();
+    ctx.fillStyle = sweepGrad;
+    ctx.fill();
+
+    const recent = [...allEvents]
+      .sort((a,b)=> new Date(b.time) - new Date(a.time))
+      .slice(0,10);
+
+    recent.forEach((ev, idx) => {
+      const t = (ev.type || "").toLowerCase();
+      const lateVal = (ev.lateness || "").toLowerCase();
+      const uid = ev.uid || "";
+      const isUnknownUid = !uid || uid === "unknown";
+      const isKnownStaff = !isUnknownUid && knownStaffSet.has(uid);
+      const isUnauthorized = lateVal === "unauthorized" || t.includes("unauthor");
+      const isUndefined = isUnknownUid || (!isKnownStaff && !isUnknownUid);
+
+      const angle = ((idx * 36) * Math.PI) / 180;
+      const radius = r * (0.35 + 0.55 * (idx / 10));
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+
+      ctx.beginPath();
+      ctx.arc(x,y,8,0,Math.PI*2);
+      if (isUnauthorized) ctx.fillStyle = "rgba(248,113,113,0.55)";
+      else if (isUndefined) ctx.fillStyle = "rgba(250,204,21,0.55)";
+      else ctx.fillStyle = "rgba(45,212,191,0.45)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(x,y,3.5,0,Math.PI*2);
+      if (isUnauthorized) ctx.fillStyle = "rgba(248,113,113,0.98)";
+      else if (isUndefined) ctx.fillStyle = "rgba(250,204,21,0.98)";
+      else ctx.fillStyle = "rgba(45,212,191,0.98)";
+      ctx.fill();
+    });
+
+    radarAngle = (radarAngle + 2.6) % 360;
+  }
+  setInterval(drawRadarFrame, 80);
+
+  // ---------- MOTION PULSE TILE ----------
+  let pulseTick = 0;
+  function drawPulseTile() {
+    if (!pulseCanvas) return;
+    const ctx = pulseCanvas.getContext("2d");
+    const w = pulseCanvas.width = 220;
+    const h = pulseCanvas.height = 140;
+
+    ctx.clearRect(0,0,w,h);
+
+    ctx.fillStyle = "#020617";
+    ctx.fillRect(0,0,w,h);
+
+    ctx.strokeStyle = "rgba(51,65,85,0.45)";
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= w; x += 22) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, h);
+      ctx.stroke();
+    }
+    for (let y = 0; y <= h; y += 20) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    const recent = [...allEvents]
+      .sort((a,b)=> new Date(b.time) - new Date(a.time))
+      .slice(0, 18);
+
+    const cols = 6;
+    const rows = 3;
+    const cellW = w / cols;
+    const cellH = h / rows;
+
+    recent.forEach((ev, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      const cx = (col + 0.5) * cellW;
+      const cy = (row + 0.5) * cellH;
+
+      const late = (ev.lateness || "").toLowerCase();
+      const isUnauthorized = late === "unauthorized" || (ev.type || "").toLowerCase().includes("unauthor");
+      const isUnknown = !ev.uid || ev.uid === "unknown";
+
+      let baseColor = "rgba(45,212,191,";
+      if (isUnknown) baseColor = "rgba(250,204,21,";
+      if (isUnauthorized) baseColor = "rgba(248,113,113,";
+
+      const pulse = 1.5 + Math.sin(pulseTick + index * 0.4) * 1.2;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6 + pulse, 0, Math.PI*2);
+      ctx.fillStyle = baseColor + "0.35)";
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, 2.8 + pulse*0.4, 0, Math.PI*2);
+      ctx.fillStyle = baseColor + "0.85)";
+      ctx.fill();
+    });
+
+    pulseTick += 0.12;
+  }
+  setInterval(drawPulseTile, 110);
+
+  // ---------- INCIDENT REPLAY ----------
+  if (replaySlider) {
+    replaySlider.addEventListener("input", () => {
+      const minutes = parseInt(replaySlider.value, 10);
+      const h = Math.floor(minutes / 60);
+      const m = minutes % 60;
+      const label = `${pad(h)}:${pad(m)}`;
+      if (replayTimeEl) replayTimeEl.textContent = label;
+
+      const filtered = allEvents.filter(ev => {
+        const d = new Date(ev.time || "");
+        if (isNaN(d)) return false;
+        return d.getHours()*60 + d.getMinutes() <= minutes;
+      });
+      if (replayEventsEl) replayEventsEl.textContent = `${filtered.length} events in view`;
+
+      if (!securityTimelineEl) return;
+      securityTimelineEl.innerHTML = "";
+      filtered
+        .sort((a,b)=> new Date(b.time)-new Date(a.time))
+        .slice(0,120)
+        .forEach(ev => {
+          const row = document.createElement("div");
+          row.className = "flex justify-between gap-2 px-2 py-0.5 rounded hover:bg-slate-900/70";
+          row.innerHTML = `
+            <span class="text-[11px] text-slate-300">${fmtTime(ev.time || "")}</span>
+            <span class="flex-1 text-[11px] text-slate-200 truncate">
+              ${ev.name || ev.uid || "Unknown"} — ${ev.type || ""}
+            </span>
+          `;
+          securityTimelineEl.appendChild(row);
+        });
+    });
+  }
+
+  // ---------- TODAY SUMMARY ----------
+  function renderTodaySummary(events) {
+    if (!todaySummaryEl) return;
+    todaySummaryEl.innerHTML = "";
+    const byUid = {};
+    events.forEach(ev => {
+      const dKey = (ev.date || "").slice(0,10);
+      if (dKey !== todayKey) return;
+      const uid = ev.uid || "unknown";
+      if (!byUid[uid]) byUid[uid] = [];
+      byUid[uid].push(ev);
+    });
+    Object.values(byUid).forEach(list => list.sort((a,b)=> new Date(a.time)-new Date(b.time)));
+
+    Object.entries(byUid).forEach(([uid, logs]) => {
+      const first = logs[0];
+      const last = logs[logs.length-1];
+      const name = first.name || uid;
+
+      const row = document.createElement("div");
+      row.className = "flex justify-between gap-2 px-2 py-1 rounded hover:bg-slate-900/60";
+      row.innerHTML = `
+        <div class="flex-1">
+          <div class="text-[11px] text-slate-100">${name}</div>
+          <div class="text-[11px] text-slate-400">
+            First: ${fmtTime(first.time || "")} • Last: ${fmtTime(last.time || "")}
+          </div>
+        </div>
+        <div class="text-[10px] text-slate-400 whitespace-nowrap self-center">
+          ${logs.length} events
+        </div>
+      `;
+      todaySummaryEl.appendChild(row);
+    });
+  }
+
+  // ---------- SYSTEM COUNTS ----------
+  function renderSystemCounts(events) {
+    if (!systemCountsEl) return;
+    const total = events.length;
+    const unauth = events.filter(e => (e.lateness || "").toLowerCase() === "unauthorized").length;
+    const late = events.filter(e => (e.lateness || "").toLowerCase() === "late").length;
+
+    let status = "Stable";
+    let statusClass = "text-emerald-300";
+    if (unauth >= 5 || late >= 10) {
+      status = "High Risk";
+      statusClass = "text-rose-300";
+    } else if (unauth >= 1 || late >= 3) {
+      status = "Warning";
+      statusClass = "text-amber-300";
+    }
+
+    const nowLabel = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    systemCountsEl.innerHTML = `
+      <div>Today: <span class="text-sky-300">${total}</span> events</div>
+      <div>Unauthorized: <span class="text-amber-300">${unauth}</span> • Late: <span class="text-rose-300">${late}</span></div>
+      <div>System status: <span class="${statusClass}">${status}</span></div>
+      <div class="text-[10px] text-slate-500">Last refreshed at ${nowLabel}</div>
+    `;
+  }
+
+  // ---------- HUD ----------
+  function renderHud(events) {
+    if (!hudInEl || !hudOutEl || !hudLateEl || !hudUnauthEl || !hudContainer) return;
+    const todayEvents = events.filter(ev => (ev.date || "").startsWith(todayKey));
+    const inCount = todayEvents.filter(ev => (ev.type || "").toLowerCase().includes("entry")).length;
+    const outCount = todayEvents.filter(ev => (ev.type || "").toLowerCase().includes("exit")).length;
+    const lateCount = todayEvents.filter(ev => (ev.lateness || "").toLowerCase() === "late").length;
+    const unauthCount = todayEvents.filter(ev =>
+      (ev.lateness || "").toLowerCase() === "unauthorized" ||
+      (ev.type || "").toLowerCase().includes("unauthor")
+    ).length;
+
+    hudInEl.textContent = inCount;
+    hudOutEl.textContent = outCount;
+    hudLateEl.textContent = lateCount;
+    hudUnauthEl.textContent = unauthCount;
+    hudContainer.classList.remove("hidden");
+  }
+
+  // ---------- DRAGGABLE HUD ----------
+  if (hudContainer) {
+    let dragging = false;
+    let offsetX = 0, offsetY = 0;
+
+    function startDrag(e) {
+      dragging = true;
+      const rect = hudContainer.getBoundingClientRect();
+      const p = e.touches ? e.touches[0] : e;
+      offsetX = p.clientX - rect.left;
+      offsetY = p.clientY - rect.top;
+
+      hudContainer.style.right = "auto";
+      hudContainer.style.bottom = "auto";
+
+      document.addEventListener("mousemove", onDrag);
+      document.addEventListener("mouseup", endDrag);
+      document.addEventListener("touchmove", onDrag, { passive: false });
+      document.addEventListener("touchend", endDrag);
+    }
+
+    function onDrag(e) {
+      if (!dragging) return;
+      if (e.touches && e.touches.length) e.preventDefault();
+
+      const p = e.touches ? e.touches[0] : e;
+      let x = p.clientX - offsetX;
+      let y = p.clientY - offsetY;
+
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      const rect = hudContainer.getBoundingClientRect();
+      const maxX = vw - rect.width - 8;
+      const maxY = vh - rect.height - 8;
+
+      if (x < 8) x = 8;
+      if (y < 8) y = 8;
+      if (x > maxX) x = maxX;
+      if (y > maxY) y = maxY;
+
+      hudContainer.style.left = x + "px";
+      hudContainer.style.top = y + "px";
+    }
+
+    function endDrag() {
+      dragging = false;
+      document.removeEventListener("mousemove", onDrag);
+      document.removeEventListener("mouseup", endDrag);
+      document.removeEventListener("touchmove", onDrag);
+      document.removeEventListener("touchend", endDrag);
+    }
+
+    hudContainer.addEventListener("mousedown", startDrag);
+    hudContainer.addEventListener("touchstart", startDrag);
+  }
+
+  // ---------- LOAD DATA ----------
+  async function loadAll() {
+    if (refreshSpinner) refreshSpinner.classList.remove("hidden");
+    try {
+      const [eventsSnap, permsSnap, alertsSnap] = await Promise.all([
+        get(ref(adminDb, "face_events")),
+        get(ref(adminDb, "permissions")),
+        get(ref(adminDb, "alerts"))
+      ]);
+
+      allEvents = flattenFaceEvents(eventsSnap.val() || {});
+      const perms = permsSnap.val() || {};
+      const alerts = alertsSnap.val() || {};
+
+      knownStaffSet.clear();
+      allEvents.forEach(ev => {
+        if (ev.uid && ev.uid !== "unknown") knownStaffSet.add(ev.uid);
+      });
+
+      if (statEventsEl) statEventsEl.textContent = allEvents.length;
+      if (statUnauthEl) statUnauthEl.textContent = allEvents.filter(e => (e.lateness || "").toLowerCase() === "unauthorized").length;
+      if (statOntimeEl) statOntimeEl.textContent = allEvents.filter(e => (e.lateness || "").toLowerCase() === "on-time").length;
+      if (statUndefinedEl) statUndefinedEl.textContent = allEvents.filter(e => !e.uid || e.uid === "unknown").length;
+
+      renderHud(allEvents);
+      renderTicker(allEvents);
+      renderEventIntel(allEvents);
+      renderTodaySummary(allEvents);
+      renderTracking(allEvents);
+      renderUnauth(allEvents);
+      renderUndefined(allEvents);
+      renderAIInsights(allEvents);
+      renderSystemCounts(allEvents);
+      renderPermissions(perms);
+      renderAlerts(alerts);
+      if (replaySlider) replaySlider.dispatchEvent(new Event("input"));
+    } catch (e) {
+      console.error(e);
+      toast("Failed to load data");
+    } finally {
+      if (refreshSpinner) refreshSpinner.classList.add("hidden");
+    }
+  }
+
+  if (refreshBtn) refreshBtn.onclick = loadAll;
+
+  if (clearEventsBtn) {
+    clearEventsBtn.onclick = async () => {
+      await remove(ref(adminDb, "face_events"));
+      toast("Events cleared");
+      allEvents = [];
+      renderEventIntel([]);
+      renderTicker([]);
+      renderTodaySummary([]);
+      renderTracking([]);
+      renderUnauth([]);
+      renderUndefined([]);
+      renderAIInsights([]);
+      renderSystemCounts([]);
+    };
+  }
+
+  // live listeners
+  onValue(ref(adminDb, "face_events"), snap => {
+    allEvents = flattenFaceEvents(snap.val() || {});
+    if (statEventsEl) statEventsEl.textContent = allEvents.length;
+    if (statUnauthEl) statUnauthEl.textContent = allEvents.filter(e => (e.lateness || "").toLowerCase() === "unauthorized").length;
+    if (statOntimeEl) statOntimeEl.textContent = allEvents.filter(e => (e.lateness || "").toLowerCase() === "on-time").length;
+    if (statUndefinedEl) statUndefinedEl.textContent = allEvents.filter(e => !e.uid || e.uid === "unknown").length;
+
+    renderHud(allEvents);
+    renderTicker(allEvents);
+    renderEventIntel(allEvents);
+    renderTodaySummary(allEvents);
+    renderTracking(allEvents);
+    renderUnauth(allEvents);
+    renderUndefined(allEvents);
+    renderAIInsights(allEvents);
+    renderSystemCounts(allEvents);
+    if (replaySlider) replaySlider.dispatchEvent(new Event("input"));
+  });
+
+  onValue(ref(adminDb, "permissions"), snap => renderPermissions(snap.val() || {}));
+  onValue(ref(adminDb, "alerts"), snap => renderAlerts(snap.val() || {}));
+
+  // initial load + polling
+  loadAll();
+  setInterval(loadAll, 15000);
+</script>
+
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>Staff Registration - Staff Outing System</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <style>
+        body {
+            background: #f8faff;
+            font-family: sans-serif;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            background: #fff;
+            border-radius: 12px;
+            padding: 36px 48px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, .08);
+            width: 360px;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 18px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+
+        button {
+            width: 100%;
+            background: #236AF5;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h2>Create Account</h2>
+        <form id="registerForm">
+            <label>Name</label>
+            <input id="name" type="text" required placeholder="Enter your name" />
+
+            <label for="department">Department</label>
+            <select id="department" required>
+                <option value="">Select Department</option>
+                <option>Engineering</option>
+                <option>Marketing</option>
+                <option>Sales</option>
+                <option>HR</option>
+            </select>
+
+            <label>Email</label>
+            <input id="email" type="email" required placeholder="Enter your email" />
+
+            <label>Phone</label>
+            <input id="phone" type="text" required placeholder="Enter your phone number" />
+
+            <label>Password</label>
+            <input id="password" type="password" required placeholder="Enter your password" />
+
+            <button type="submit">Register</button>
+        </form>
+        <p>Already have an account? <a href="login-staff.html">Login</a></p>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import {
+            getAuth,
+            createUserWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+        import {
+            getDatabase,
+            ref,
+            set
+        } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBaVTNePTudTNwaBLSg_tnXJdVNYImhLtA",
+            authDomain: "staff-outing-8754d.firebaseapp.com",
+            databaseURL: "https://staff-outing-8754d-default-rtdb.firebaseio.com",
+            projectId: "staff-outing-8754d",
+            storageBucket: "staff-outing-8754d.appspot.com",
+            messagingSenderId: "626313854211",
+            appId: "1:626313854211:web:794b8360e41f4b5290fd36"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        const form = document.getElementById("registerForm");
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById("name").value.trim();
+            const department = document.getElementById("department").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const phone = document.getElementById("phone").value.trim();
+            const password = document.getElementById("password").value.trim();
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                try {
+                    await set(ref(db, "staff_details/" + user.uid), {
+                        uid: user.uid,
+                        name,
+                        department,
+                        email,
+                        phone,
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (dbErr) {
+                    console.warn("DB write blocked, but Auth user created:", dbErr);
+                }
+
+                alert("Registration successful! Please login.");
+                window.location.href = "login-staff.html";
+            } catch (error) {
+                alert("Error: " + error.message);
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,1667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Staff Dashboard — Smart Outing System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .fade-in {
+            animation: fadeIn 260ms ease both;
+        }       
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+
+            to {
+                opacity: 1;
+                transform: none;
+            }
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 4px;
+        }
+
+        .calendar-cell {
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 11px;
+            text-align: center;
+        }
+
+        #toast {
+            transition: opacity 180ms ease, transform 180ms ease;
+            transform-origin: bottom right;
+        }
+
+        #toast.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #toast.hide {
+            opacity: 0;
+            transform: translateY(8px);
+        }
+
+        .spinner {
+            width: 14px;
+            height: 14px;
+            border-radius: 999px;
+            border: 2px solid rgba(148, 163, 184, 0.4);
+            border-top-color: #22d3ee;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+    
+
+        .animate-ping-slow {
+            animation: pingSlow 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+        }
+
+        @keyframes pingSlow {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            75%, 100% {
+                transform: scale(1.8);
+                opacity: 0;
+            }
+        }
+
+        .status-banner-danger {
+            border-color: rgba(248, 113, 113, 0.9) !important;
+            box-shadow: 0 0 28px rgba(248, 113, 113, 0.55);
+            background: radial-gradient(circle at top left, rgba(248, 113, 113, 0.22), transparent),
+                        rgba(15, 23, 42, 0.9);
+        }
+
+        .status-banner-warn {
+            border-color: rgba(251, 191, 36, 0.9) !important;
+            box-shadow: 0 0 28px rgba(251, 191, 36, 0.55);
+            background: radial-gradient(circle at top left, rgba(251, 191, 36, 0.22), transparent),
+                        rgba(15, 23, 42, 0.9);
+        }
+
+        .status-banner-safe {
+            border-color: rgba(52, 211, 153, 0.9) !important;
+            box-shadow: 0 0 26px rgba(52, 211, 153, 0.45);
+            background: radial-gradient(circle at top left, rgba(52, 211, 153, 0.18), transparent),
+                        rgba(15, 23, 42, 0.9);
+        }
+
+        .status-banner-info {
+            border-color: rgba(56, 189, 248, 0.9) !important;
+            box-shadow: 0 0 26px rgba(56, 189, 248, 0.45);
+            background: radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent),
+                        rgba(15, 23, 42, 0.9);
+        }
+</style>
+</head>
+
+<body class="bg-slate-950 text-slate-100">
+    <div class="flex min-h-screen">
+
+        <!-- SIDEBAR -->
+        <aside
+            class="w-72 bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 border-r border-slate-800 hidden sm:flex flex-col">
+            <div class="px-6 pt-6 pb-4 flex items-center justify-between">
+                <div>
+                    <div class="text-[11px] tracking-[0.25em] uppercase text-sky-400">Smart Outing</div>
+                    <div class="text-xl font-semibold mt-1">Staff Panel</div>
+                </div>
+                <div class="w-8 h-8 rounded-full border border-sky-500 flex items-center justify-center text-sky-400">
+                    👁
+                </div>
+            </div>
+
+            <nav class="flex-1 px-3 mt-4 space-y-1 text-sm">
+                <button id="navDashboard"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">▰</span>
+                    <span>Dashboard</span>
+                </button>
+                <button id="navPermission"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">✉</span>
+                    <span>Permission</span>
+                </button>
+                <button id="navHistory"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">📜</span>
+                    <span>My Permission History</span>
+                </button>
+                <button id="navFaceLogs"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">🎥</span>
+                    <span>Face Logs</span>
+                </button>
+                <button id="navAnalytics"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">📊</span>
+                    <span>Analytics</span>
+                </button>
+                <button id="navCalendar"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">🗓</span>
+                    <span>Calendar</span>
+                </button>
+                <button id="navNotifications"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">🔔</span>
+                    <span>Notifications</span>
+                </button>
+                <button id="navQR"
+                    class="hidden w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">▢</span>
+                    <span>My QR Pass</span>
+                </button>
+                <button id="navProfile"
+                    class="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-800/80 hover:text-sky-300 transition">
+                    <span class="text-sky-400 text-lg">👤</span>
+                    <span>Profile</span>
+                </button>
+            </nav>
+
+            <div class="px-6 pb-6 pt-4 border-t border-slate-800">
+                <button id="logoutBtn"
+                    class="w-full bg-gradient-to-r from-rose-600 to-amber-500 hover:from-rose-500 hover:to-amber-400 text-sm font-medium py-2 rounded-lg">
+                    Logout
+                </button>
+                <p class="mt-2 text-[10px] text-slate-500">
+                    Logged in as <span class="text-sky-400" id="sidebarUserName">Staff</span>
+                </p>
+            </div>
+        </aside>
+
+        <!-- MAIN -->
+        <main class="flex-1 min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900">
+            <!-- mobile top -->
+            <header class="sm:hidden px-4 py-3 border-b border-slate-800 flex items-center justify-between">
+                <div>
+                    <div class="text-[11px] tracking-[0.23em] uppercase text-sky-400">Smart Outing</div>
+                    <div class="text-lg font-semibold">Staff Panel</div>
+                </div>
+                <button id="logoutBtnMobile"
+                    class="px-3 py-1 text-xs rounded-lg bg-rose-600 hover:bg-rose-500">Logout</button>
+            </header>
+
+            <div class="flex-1 p-4 sm:p-6 lg:p-8">
+                <!-- header -->
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h1 id="pageTitle" class="text-2xl md:text-3xl font-semibold">Dashboard</h1>
+                            <span
+                                class="px-2 py-0.5 rounded-full border border-sky-500 text-[10px] tracking-[0.18em] uppercase text-sky-300">
+                                Staff
+                            </span>
+                        </div>
+                        <p id="pageSub" class="text-xs md:text-sm text-slate-400 mt-1">
+                            Personal control center for your permissions, movement timeline & alerts.
+                        </p>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        <div class="flex items-center gap-2">
+                            <div class="text-sm text-slate-300" id="welcomeUser"></div>
+                            <button id="voiceBtn"
+                                class="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full border border-sky-500/80 text-sky-300 hover:bg-sky-500/10">
+                                🎙 Voice
+                            </button>
+                        </div>
+                        <div id="voiceStatus" class="text-[10px] text-slate-500"></div>
+                    </div>
+                </div>
+
+                <!-- DASHBOARD -->
+                <section id="sectionDashboard" class="space-y-6">
+                    <!-- LIVE OUTING STATUS BANNER -->
+                    <div id="liveOutingStatus"
+                         class="sticky top-0 z-30 mb-4 rounded-2xl border border-sky-500/60 bg-sky-900/40 backdrop-blur-sm shadow-[0_0_25px_rgba(56,189,248,0.45)] hidden overflow-hidden">
+                        <div class="px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                            <div>
+                                <div id="liveOutingTitle"
+                                     class="text-xs sm:text-sm font-semibold tracking-[0.18em] uppercase text-sky-300 flex items-center gap-2">
+                                    <span id="liveCameraDot"
+                                          class="inline-flex h-2.5 w-2.5 rounded-full bg-sky-400 animate-ping-slow relative">
+                                        <span class="absolute inline-flex h-2.5 w-2.5 rounded-full bg-sky-300"></span>
+                                    </span>
+                                    <span>OUTING STATUS</span>
+                                </div>
+                                <div id="liveOutingMsg" class="text-[11px] sm:text-xs text-slate-100 mt-1">
+                                    Status information loading...
+                                </div>
+                                <div id="liveOutingTimer" class="text-[10px] text-sky-200 mt-1">
+                                </div>
+                            </div>
+                            <div class="flex flex-col items-start sm:items-end gap-1 text-[10px]">
+                                <div id="liveOutingMeta" class="text-slate-300"></div>
+                                <div class="flex flex-wrap gap-1">
+                                    <span id="liveOutingPill"
+                                          class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] border border-sky-400/70 bg-slate-950/80 text-sky-200">
+                                        Waiting for data
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="h-[2px] bg-gradient-to-r from-sky-400 via-emerald-400 to-amber-400 opacity-80"></div>
+                    </div>
+
+                    <!-- stats -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                        <div
+                            class="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] uppercase tracking-[0.22em] text-slate-500">Active Permission
+                                </div>
+                                <div class="text-[10px] text-sky-400">Status</div>
+                            </div>
+                            <div class="mt-3 text-xl font-semibold text-sky-300" id="permStatus">--</div>
+                        </div>
+                        <div
+                            class="rounded-2xl bg-gradient-to-br from-emerald-950 via-slate-950 to-slate-950 border border-emerald-700/70 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] uppercase tracking-[0.22em] text-emerald-400">Today IN</div>
+                            </div>
+                            <div class="mt-3 text-2xl font-semibold text-emerald-300" id="todayIn">--</div>
+                        </div>
+                        <div
+                            class="rounded-2xl bg-gradient-to-br from-amber-950 via-slate-950 to-slate-950 border border-amber-600/70 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] uppercase tracking-[0.22em] text-amber-400">Today OUT</div>
+                            </div>
+                            <div class="mt-3 text-2xl font-semibold text-amber-300" id="todayOut">--</div>
+                        </div>
+                        <div
+                            class="rounded-2xl bg-gradient-to-br from-violet-950 via-slate-950 to-slate-950 border border-violet-700/70 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-[11px] uppercase tracking-[0.22em] text-violet-300">ETA Back</div>
+                            </div>
+                            <div class="mt-3 text-2xl font-semibold text-violet-200" id="etaBack">--</div>
+                            <div class="mt-1 text-[11px] text-slate-400" id="etaSub"></div>
+                        </div>
+                    </div>
+
+                    <!-- row 2 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- live location -->
+                        <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Live Location</div>
+                                    <div class="text-xs text-slate-400">When you are OUT with permission.</div>
+                                </div>
+                                <div class="spinner"></div>
+                            </div>
+                            <div class="text-[11px] text-slate-500 mb-1" id="liveLocStatus">No live location available.
+                            </div>
+                            <div class="text-xs text-slate-200">
+                                <div><span class="font-semibold text-slate-300">Lat/Lng:</span> <span
+                                        id="liveLatLng">--</span></div>
+                                <div><span class="font-semibold text-slate-300">Last update:</span> <span
+                                        id="liveUpdatedAt">--</span>
+                                </div>
+                                <div><span class="font-semibold text-slate-300">Approx. distance:</span> <span
+                                        id="liveDistance">--</span></div>
+                                <div class="mt-2">
+                                    <a id="liveMapLink" href="#" target="_blank"
+                                        class="text-[11px] text-sky-400 underline hidden">Open in Google Maps</a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- today reliability -->
+                        <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <div>
+                                    <div class="text-[11px] tracking-[0.2em] uppercase text-emerald-400">Today
+                                        Reliability</div>
+                                    <div class="text-xs text-slate-400">Based on today’s movement events.</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3 mb-2">
+                                <div class="flex-1">
+                                    <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                        <span>Reliability</span>
+                                        <span id="todayReliabilityLabel">0%</span>
+                                    </div>
+                                    <div class="w-full bg-slate-800 rounded-full h-2">
+                                        <div id="todayReliabilityBar"
+                                            class="h-2 rounded-full bg-emerald-400 transition-all duration-300"
+                                            style="width:0%;"></div>
+                                    </div>
+                                </div>
+                                <div class="text-[11px] text-slate-300">
+                                    <div><span class="font-semibold text-emerald-300">On-Time:</span> <span
+                                            id="todayOnTime">0</span></div>
+                                    <div><span class="font-semibold text-rose-300">Late:</span> <span
+                                            id="todayLate">0</span></div>
+                                    <div><span class="font-semibold text-amber-300">Unauth:</span> <span
+                                            id="todayUnauth">0</span></div>
+                                </div>
+                            </div>
+                            <div class="text-[10px] text-slate-500">
+                                * Today reliability = On-Time / (On-Time + Late).
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- today timeline -->
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Today Movement Timeline
+                                </div>
+                                <div class="text-xs text-slate-400">Sequence of your IN / OUT / Unauthorized events.
+                                </div>
+                            </div>
+                        </div>
+                        <div id="todayTimeline"
+                            class="space-y-2 max-h-[260px] overflow-auto pr-1 text-xs md:text-sm text-slate-200">
+                            <div class="text-slate-500 text-xs">No events yet for today.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PERMISSION -->
+                <section id="sectionPermission" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Apply Permission</div>
+                                <div class="text-xs text-slate-400">
+                                    You can also say: <span class="italic text-slate-300">"open permission form"</span>
+                                    using voice.
+                                </div>
+                            </div>
+                        </div>
+                        <form id="permForm" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                            <div>
+                                <label class="block mb-1 text-slate-300">Type</label>
+                                <select id="permType"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500">
+                                    <option value="on-duty">On-Duty</option>
+                                    <option value="leave">Leave</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block mb-1 text-slate-300">From Date</label>
+                                <input id="permFromDate" type="date"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500"
+                                    required />
+                            </div>
+                            <div>
+                                <label class="block mb-1 text-slate-300">From Time</label>
+                                <input id="permFromTime" type="time"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500"
+                                    required />
+                            </div>
+                            <div>
+                                <label class="block mb-1 text-slate-300">To Date</label>
+                                <input id="permToDate" type="date"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500"
+                                    required />
+                            </div>
+                            <div>
+                                <label class="block mb-1 text-slate-300">To Time</label>
+                                <input id="permToTime" type="time"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500"
+                                    required />
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block mb-1 text-slate-300">Reason</label>
+                                <textarea id="permReason" rows="3"
+                                    class="w-full rounded-lg bg-slate-900 border border-slate-700 px-2 py-2 focus:outline-none focus:border-sky-500"
+                                    placeholder="Eg: Official work, meeting, medical..." required></textarea>
+                            </div>
+                            <div class="md:col-span-2 flex flex-wrap gap-3">
+                                <button type="submit"
+                                    class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-semibold">Submit</button>
+                                <button id="clearMyPermissions" type="button"
+                                    class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-600 text-xs text-slate-200 hover:bg-slate-700">Clear
+                                    My Permissions</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <!-- HISTORY -->
+                <section id="sectionHistory" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">My Permission History
+                                </div>
+                            </div>
+                            <button id="clearHistoryBtn"
+                                class="px-3 py-1.5 rounded-lg border border-rose-500/80 text-rose-300 text-xs hover:bg-rose-500/10">
+                                Clear History
+                            </button>
+                        </div>
+                        <div id="historyList" class="space-y-3 max-h-[450px] overflow-auto pr-1 text-xs"></div>
+                    </div>
+                </section>
+
+                <!-- FACE LOGS -->
+                <section id="sectionFaceLogs" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">My Face Logs</div>
+                            </div>
+                            <button id="clearFaceLogsBtn"
+                                class="px-3 py-1.5 rounded-lg border border-rose-500/80 text-rose-300 text-xs hover:bg-rose-500/10">
+                                Clear Logs
+                            </button>
+                        </div>
+                        <div id="faceLogsList" class="space-y-3 max-h-[500px] overflow-auto pr-1 text-xs md:text-sm">
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ANALYTICS -->
+                <section id="sectionAnalytics" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400 mb-2">My Analytics</div>
+                        <p class="text-xs text-slate-400 mb-4">
+                            Based on face recognition events (Exit / Entry / Unauthorized).
+                        </p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-4 text-sm">
+                            <div class="rounded-xl bg-slate-900 border border-slate-700 p-3">
+                                <div class="text-[11px] text-slate-400">Total Sessions</div>
+                                <div id="statTotalSessions" class="mt-2 text-2xl font-semibold text-sky-300">0</div>
+                            </div>
+                            <div class="rounded-xl bg-emerald-950 border border-emerald-700 p-3">
+                                <div class="text-[11px] text-emerald-200/80">On-Time Returns</div>
+                                <div id="statOnTime" class="mt-2 text-2xl font-semibold text-emerald-300">0</div>
+                            </div>
+                            <div class="rounded-xl bg-rose-950 border border-rose-700 p-3">
+                                <div class="text-[11px] text-rose-200/80">Late Returns</div>
+                                <div id="statLate" class="mt-2 text-2xl font-semibold text-rose-300">0</div>
+                            </div>
+                            <div class="rounded-xl bg-amber-950 border border-amber-600 p-3">
+                                <div class="text-[11px] text-amber-200/80">Unauthorized Events</div>
+                                <div id="statUnauthorized" class="mt-2 text-2xl font-semibold text-amber-300">0</div>
+                            </div>
+                        </div>
+                        <div class="mb-2">
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>Reliability Score</span>
+                                <span id="statReliabilityLabel">0%</span>
+                            </div>
+                            <div class="w-full bg-slate-800 rounded-full h-3">
+                                <div id="statReliabilityBar"
+                                    class="h-3 rounded-full bg-emerald-400 transition-all duration-300"
+                                    style="width:0%;"></div>
+                            </div>
+                        </div>
+                        <div class="text-[10px] text-slate-500">
+                            *Reliability = On-Time / (On-Time + Late).
+                        </div>
+                    </div>
+                </section>
+
+                <!-- CALENDAR -->
+                <section id="sectionCalendar" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Attendance Calendar
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-xs">
+                                <button id="prevMonth"
+                                    class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-800">&lt;</button>
+                                <span id="calMonthLabel" class="text-slate-200 font-semibold"></span>
+                                <button id="nextMonth"
+                                    class="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 hover:bg-slate-800">&gt;</button>
+                            </div>
+                        </div>
+                        <div class="calendar-grid text-[11px] text-slate-400 mb-2">
+                            <div>Sun</div>
+                            <div>Mon</div>
+                            <div>Tue</div>
+                            <div>Wed</div>
+                            <div>Thu</div>
+                            <div>Fri</div>
+                            <div>Sat</div>
+                        </div>
+                        <div id="calendarBody" class="calendar-grid"></div>
+                        <div class="flex gap-4 mt-4 text-[11px] text-slate-400">
+                            <div class="flex items-center gap-1">
+                                <span class="w-3 h-3 rounded bg-emerald-700"></span> On-Time
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-3 h-3 rounded bg-rose-700"></span> Late
+                            </div>
+                            <div class="flex items-center gap-1">
+                                <span class="w-3 h-3 rounded bg-amber-600"></span> Unauthorized
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- NOTIFICATIONS -->
+                <section id="sectionNotifications" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400">Notifications</div>
+                            </div>
+                            <button id="clearNotificationsBtn"
+                                class="px-3 py-1.5 rounded-lg border border-rose-500/80 text-rose-300 text-xs hover:bg-rose-500/10">
+                                Clear All
+                            </button>
+                        </div>
+                        <div id="notifList" class="space-y-3 max-h-[450px] overflow-auto pr-1 text-xs"></div>
+                        <div class="text-[10px] text-slate-500 mt-3">
+                            Notifications are generated from permission status, alerts & ML detection
+                            (late/unauthorized).
+                        </div>
+                    </div>
+                </section>
+
+                <!-- QR -->
+                <section id="sectionQR" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-5 max-w-xl">
+                        <div class="text-[11px] tracking-[0.2em] uppercase text-sky-400 mb-1">My QR Pass</div>
+                        <p class="text-[11px] text-slate-400 mb-3">
+                            This QR contains your staff ID + currently approved permission window. It can be scanned at
+                            the gate.
+                        </p>
+                        <div class="flex flex-col items-center gap-3">
+                            <canvas id="qrCanvas" class="bg-slate-900 rounded-xl border border-slate-700"></canvas>
+                            <div class="text-[11px] text-slate-400 text-center" id="qrMeta">
+                                Waiting for an approved permission...
+                            </div>
+                            <button id="refreshQR"
+                                class="mt-1 px-4 py-1.5 bg-slate-900 border border-slate-700 hover:bg-slate-800 text-[11px] rounded-lg">
+                                Refresh QR
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- PROFILE -->
+                <section id="sectionProfile" class="hidden space-y-4">
+                    <div class="rounded-2xl border border-slate-800 bg-slate-950/80 p-4 lg:p-6 max-w-2xl">
+                        <div class="flex items-center justify-between gap-4 mb-4">
+                            <div class="flex items-center gap-3">
+                                <div id="profileAvatar"
+                                    class="h-10 w-10 rounded-full bg-sky-500/20 border border-sky-500/40 flex items-center justify-center text-sky-300 text-sm font-semibold">
+                                    S
+                                </div>
+                                <div>
+                                    <div id="profileDisplayName" class="text-sm font-medium text-slate-100">
+                                        Staff
+                                    </div>
+                                    <div class="text-[11px] text-slate-400">
+                                        ID: <span id="profileUid">--</span>
+                                        <span class="mx-1 text-slate-600">•</span>
+                                        <span id="profileEmail">Not set</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="hidden sm:flex flex-col items-end text-[11px] text-slate-400">
+                                <span class="uppercase tracking-[0.22em] text-sky-400">My Profile</span>
+                                <span>Update your personal details.</span>
+                            </div>
+                        </div>
+                        <form id="profileForm" class="grid gap-3 text-xs sm:grid-cols-2">
+                            <div class="sm:col-span-2">
+                                <label class="block text-[11px] text-slate-400 mb-1">Full name</label>
+                                <input id="pfName" placeholder="Full name"
+                                    class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-500" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Department</label>
+                                <input id="pfDept" placeholder="Department"
+                                    class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-500" />
+                            </div>
+                            <div>
+                                <label class="block text-[11px] text-slate-400 mb-1">Phone</label>
+                                <input id="pfPhone" placeholder="Phone"
+                                    class="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 focus:outline-none focus:border-sky-500" />
+                            </div>
+                            <div class="sm:col-span-2 flex gap-2 pt-1">
+                                <button type="submit"
+                                    class="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-xs font-semibold">Save</button>
+                                <button id="clearProfileBtn" type="button"
+                                    class="px-4 py-2 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-200 hover:bg-slate-800">Reset</button>
+                            </div>
+                        </form>
+                    </div>
+                </section>
+
+                <div id="toast"
+                    class="fixed right-4 bottom-4 bg-slate-900/95 border border-sky-500/70 text-sky-100 px-4 py-2 rounded-lg text-xs shadow-lg hidden">
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import {
+            getDatabase,
+            ref,
+            push,
+            set,
+            update,
+            onValue,
+            get,
+            remove,
+        } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+        const staffConfig = {
+            apiKey: "AIzaSyBaVTNePTudTNwaBLSg_tnXJdVNYImhLtA",
+            authDomain: "staff-outing-8754d.firebaseapp.com",
+            databaseURL: "https://staff-outing-8754d-default-rtdb.firebaseio.com",
+            projectId: "staff-outing-8754d",
+            storageBucket: "staff-outing-8754d.appspot.com",
+            messagingSenderId: "626313854211",
+            appId: "1:626313854211:web:d1ba89336c51125790fd36"
+        };
+        const adminConfig = {
+            apiKey: "AIzaSyCyxCizOjiXjt0EsIEGQDCimAVVJvWAn5U",
+            authDomain: "admin-faecb.firebaseapp.com",
+            databaseURL: "https://admin-faecb-default-rtdb.firebaseio.com",
+            projectId: "admin-faecb",
+            storageBucket: "admin-faecb.appspot.com",
+            messagingSenderId: "994094851836",
+            appId: "1:994094851836:web:b70663258641833abc5979"
+        };
+
+        const staffApp = initializeApp(staffConfig, "staff");
+        const adminApp = initializeApp(adminConfig, "adminMirror");
+        const staffDb = getDatabase(staffApp);
+        const adminDb = getDatabase(adminApp);
+
+        const toastEl = document.getElementById("toast");
+        function toast(msg, duration = 3000) {
+            toastEl.textContent = msg;
+            toastEl.classList.remove("hidden");
+            toastEl.classList.add("show");
+            toastEl.classList.remove("hide");
+            setTimeout(() => {
+                toastEl.classList.remove("show");
+                toastEl.classList.add("hide");
+                setTimeout(() => toastEl.classList.add("hidden"), 200);
+            }, duration);
+        }
+
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playPing(freq = 880) {
+            try {
+                const o = audioCtx.createOscillator();
+                const g = audioCtx.createGain();
+                o.type = 'sine';
+                o.frequency.value = freq;
+                g.gain.value = 0.07;
+                o.connect(g);
+                g.connect(audioCtx.destination);
+                o.start();
+                setTimeout(() => o.stop(), 140);
+            } catch (e) { }
+        }
+
+        let user = {};
+        try { user = JSON.parse(localStorage.getItem("staffUser") || "{}"); } catch (e) { }
+        if (!user.uid) {
+            alert("Please login");
+            location.href = "login-staff.html";
+        }
+        const welcomeUser = document.getElementById("welcomeUser");
+        const displayName = (user.name || user.username || user.email || user.uid || 'User');
+        if (welcomeUser) welcomeUser.textContent = `Welcome, ${displayName}`;
+        const sidebarNameEl = document.getElementById("sidebarUserName");
+        if (sidebarNameEl) sidebarNameEl.textContent = displayName;
+
+        const profileNameDisplay = document.getElementById("profileDisplayName");
+        if (profileNameDisplay) profileNameDisplay.textContent = displayName;
+        const profileUidEl = document.getElementById("profileUid");
+        if (profileUidEl) profileUidEl.textContent = user.uid || '--';
+        const profileEmailEl = document.getElementById("profileEmail");
+        if (profileEmailEl) profileEmailEl.textContent = user.email || 'No email set';
+        const profileAvatarEl = document.getElementById("profileAvatar");
+        if (profileAvatarEl) profileAvatarEl.textContent = (displayName[0] || 'S').toUpperCase();
+
+        // logout
+        const doLogout = () => {
+            localStorage.removeItem("staffUser");
+            location.href = "login-staff.html";
+        };
+        document.getElementById("logoutBtn").onclick = doLogout;
+        document.getElementById("logoutBtnMobile").onclick = doLogout;
+
+        // NAV
+        const sections = ["Dashboard", "Permission", "History", "FaceLogs", "Analytics", "Calendar", "Notifications", "QR", "Profile"];
+        function showTab(t) {
+            sections.forEach(s => {
+                document.getElementById("section" + s).classList.add("hidden");
+                const navEl = document.getElementById("nav" + s);
+                if (navEl) navEl.classList.remove("bg-slate-800");
+            });
+            document.getElementById("section" + t).classList.remove("hidden");
+            const navEl = document.getElementById("nav" + t);
+            if (navEl) navEl.classList.add("bg-slate-800");
+            document.getElementById("pageTitle").textContent = t;
+            const sub = document.getElementById("pageSub");
+            if (t === "Analytics") sub.textContent = "AI-style behavior summary for your face logs.";
+            else if (t === "Calendar") sub.textContent = "Monthly overview of your on-time, late and unauthorized events.";
+            else if (t === "Notifications") sub.textContent = "Notifications from admin, permissions and ML alerts.";
+            else if (t === "QR") sub.textContent = "Use this QR at gate scanning devices.";
+            else if (t === "Permission") sub.textContent = "Apply and manage your outing/leave permissions.";
+            else if (t === "History") sub.textContent = "List of all your past permission requests.";
+            else if (t === "FaceLogs") sub.textContent = "Raw face recognition logs recorded by the system.";
+            else if (t === "Profile") sub.textContent = "Update your personal details.";
+            else sub.textContent = "Personal control center for your permissions, movement timeline & alerts.";
+        }
+        sections.forEach(s => {
+            const nav = document.getElementById("nav" + s);
+            if (nav) nav.onclick = () => showTab(s);
+        });
+        showTab("Dashboard");
+
+        // PERMISSION SUBMIT
+        document.getElementById("permForm").onsubmit = async e => {
+            e.preventDefault();
+            const obj = {
+                staffId: user.uid,
+                uid: user.uid,
+                name: user.name || user.email || user.uid,
+                email: user.email || "",
+                type: permType.value,
+                fromDate: permFromDate.value,
+                fromTime: permFromTime.value,
+                toDate: permToDate.value,
+                toTime: permToTime.value,
+                reason: permReason.value.trim(),
+                status: "pending",
+                createdAt: new Date().toISOString()
+            };
+            const staffRef = ref(staffDb, "permissions");
+            const newRef = push(staffRef);
+            const key = newRef.key;
+            await set(newRef, obj);
+            await set(ref(adminDb, `permissions/${key}`), obj);
+            toast("Permission submitted");
+            playPing();
+            e.target.reset();
+        };
+
+        // HISTORY
+        function loadHistory() {
+            onValue(ref(staffDb, "permissions"), snap => {
+                const c = document.getElementById("historyList");
+                c.innerHTML = "";
+                if (!snap.exists()) {
+                    c.innerHTML = "<div class='text-slate-500 p-3 text-xs'>No permissions</div>";
+                    return;
+                }
+                const arr = Object.entries(snap.val())
+                    .filter(([, p]) => p.uid === user.uid || p.staffId === user.uid)
+                    .sort((a, b) => new Date(b[1].createdAt) - new Date(a[1].createdAt));
+                if (!arr.length) {
+                    c.innerHTML = "<div class='text-slate-500 p-3 text-xs'>No permissions</div>";
+                    return;
+                }
+                arr.forEach(([k, p]) => {
+                    const status = (p.status || 'pending').toLowerCase();
+                    let color = "border-slate-700 bg-slate-900";
+                    if (status === "approved") color = "border-emerald-700 bg-emerald-950/40";
+                    else if (status === "declined") color = "border-rose-700 bg-rose-950/40";
+                    else color = "border-amber-600 bg-amber-950/40";
+                    c.innerHTML += `
+            <div class="p-3 rounded border ${color} fade-in">
+              <div class="font-semibold text-xs">${p.type} (${p.reason})</div>
+              <div class="text-[11px] text-slate-400">
+                ${p.fromDate} ${p.fromTime} → ${p.toDate} ${p.toTime}
+              </div>
+              <div class="text-[11px] mt-1 font-semibold uppercase">
+                ${(p.status || 'pending')}
+              </div>
+            </div>`;
+                });
+            });
+        }
+
+        // FACE LOGS
+        function loadFaceLogs() {
+            onValue(ref(adminDb, `face_events/${user.uid}`), snap => {
+                const box = document.getElementById("faceLogsList");
+                box.innerHTML = "";
+                if (!snap.exists()) {
+                    box.innerHTML = "<div class='text-slate-500 p-3 text-xs'>No face logs</div>";
+                    return;
+                }
+                const arr = [];
+                Object.entries(snap.val() || {}).forEach(([d, p]) =>
+                    Object.entries(p || {}).forEach(([, ev]) => arr.push(ev))
+                );
+                arr.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+                arr.forEach(ev => {
+                    const late = (ev.lateness || "").toLowerCase();
+                    const t = (ev.type || "").toLowerCase();
+                    let cls = "border-slate-700 bg-slate-900";
+                    let txt = "NORMAL";
+                    if (late === "on-time") {
+                        cls = "border-emerald-700 bg-emerald-950/40";
+                        txt = "ON-TIME";
+                    } else if (late === "late") {
+                        cls = "border-rose-700 bg-rose-950/40";
+                        txt = "LATE";
+                    } else if (late === "unauthorized" || t.includes("unauthor")) {
+                        cls = "border-amber-600 bg-amber-950/40";
+                        txt = "UNAUTHORIZED";
+                    }
+                    const confidence = ev.confidence != null ? ` • ${Number(ev.confidence).toFixed(1)}%` : "";
+                    box.innerHTML += `
+            <div class="p-3 rounded border ${cls} fade-in">
+              <div class="font-semibold text-xs">
+                ${ev.type || ''} — ${ev.name || user.name || user.uid}
+              </div>
+              <div class="text-[11px] text-slate-400">
+                ${new Date(ev.time).toLocaleString()}${confidence}
+              </div>
+              <div class="mt-1 text-[11px] font-semibold ${txt === 'ON-TIME'
+                            ? 'text-emerald-300'
+                            : txt === 'LATE'
+                                ? 'text-rose-300'
+                                : 'text-amber-300'
+                        }">${txt}</div>
+            </div>`;
+                });
+            });
+        }
+
+        let latestApprovedPermission = null;
+
+        // DASHBOARD + ETA
+        function loadDashboard() {
+            onValue(ref(adminDb, "permissions"), snap => {
+                const el = document.getElementById("permStatus");
+                latestApprovedPermission = null;
+                if (!snap.exists()) {
+                    el.textContent = "--";
+                    return;
+                }
+                const perms = Object.values(snap.val())
+                    .filter(p => p.uid === user.uid || p.staffId === user.uid);
+                if (!perms.length) {
+                    el.textContent = "--";
+                    return;
+                }
+                perms.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                const last = perms[0];
+                el.textContent = `${(last.status || 'pending').toUpperCase()} (${last.fromDate} → ${last.toDate})`;
+
+                const approved = perms
+                    .filter(p => (p.status || "").toLowerCase() === "approved")
+                    .sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+                if (approved.length) {
+                    latestApprovedPermission = approved[0];
+                    updateQrPass();
+                } else {
+                    updateQrPass();
+                }
+            });
+
+            onValue(ref(adminDb, "face_events"), snap => {
+                updateTodayFromFaceEvents(snap);
+            });
+        }
+
+        async function updateTodayFromFaceEvents(snap) {
+            const inEl = document.getElementById("todayIn");
+            const outEl = document.getElementById("todayOut");
+            const etaEl = document.getElementById("etaBack");
+            const etaSubEl = document.getElementById("etaSub");
+            const timelineEl = document.getElementById("todayTimeline");
+
+            const today = new Date().toISOString().slice(0, 10);
+            let ins = 0, outs = 0;
+            let todayEvents = [];
+
+            if (snap.exists() && snap.val()[user.uid]) {
+                const d = snap.val()[user.uid][today] || {};
+                Object.values(d).forEach(ev => {
+                    const t = (ev.type || "").toLowerCase();
+                    if (t.includes("in")) ins++;
+                    if (t.includes("out")) outs++;
+                    todayEvents.push(ev);
+                });
+            }
+
+            inEl.textContent = ins;
+            outEl.textContent = outs;
+
+            todayEvents.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+            let tOn = 0, tLate = 0, tUnauth = 0;
+            timelineEl.innerHTML = "";
+
+            if (!todayEvents.length) {
+                timelineEl.innerHTML = "<div class='text-slate-500 text-xs'>No events yet for today.</div>";
+            } else {
+                todayEvents.forEach(ev => {
+                    const t = (ev.type || "").toLowerCase();
+                    const late = (ev.lateness || "").toLowerCase();
+                    let badgeClass = "bg-slate-800 text-slate-200 border border-slate-600";
+                    let badgeText = "NORMAL";
+                    if (late === "on-time") {
+                        badgeClass = "bg-emerald-950/60 text-emerald-200 border border-emerald-600";
+                        badgeText = "ON-TIME";
+                        tOn++;
+                    } else if (late === "late") {
+                        badgeClass = "bg-rose-950/60 text-rose-200 border border-rose-600";
+                        badgeText = "LATE";
+                        tLate++;
+                    } else if (late === "unauthorized" || t.includes("unauthor")) {
+                        badgeClass = "bg-amber-950/60 text-amber-200 border border-amber-500";
+                        badgeText = "UNAUTHORIZED";
+                        tUnauth++;
+                    }
+
+                    const row = document.createElement("div");
+                    row.className = "flex items-start justify-between gap-2 fade-in border-b border-slate-800 pb-1";
+                    row.innerHTML = `
+            <div>
+              <div class="font-semibold text-[13px] text-slate-100">${ev.type || "Event"}</div>
+              <div class="text-[11px] text-slate-400">${new Date(ev.time).toLocaleString()}</div>
+            </div>
+            <div class="flex flex-col items-end gap-1">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold ${badgeClass}">
+                ${badgeText}
+              </span>
+              ${ev.confidence != null
+                            ? `<span class="text-[10px] text-slate-500">Conf: ${Number(ev.confidence).toFixed(1)}%</span>`
+                            : ""
+                        }
+            </div>`;
+                    timelineEl.appendChild(row);
+                });
+            }
+
+            const denomToday = tOn + tLate;
+            const todayRel = denomToday === 0 ? 0 : Math.round((tOn / denomToday) * 100);
+            document.getElementById("todayOnTime").textContent = tOn;
+            document.getElementById("todayLate").textContent = tLate;
+            document.getElementById("todayUnauth").textContent = tUnauth;
+            document.getElementById("todayReliabilityLabel").textContent = todayRel + "%";
+            document.getElementById("todayReliabilityBar").style.width = todayRel + "%";
+
+            if (!todayEvents.length) {
+                etaEl.textContent = "--";
+                etaSubEl.textContent = "No face events yet today.";
+                return;
+            }
+            const lastEv = todayEvents[0];
+            const lastType = (lastEv.type || "").toLowerCase();
+
+            let activePerm = null;
+            try {
+                const permSnap = await get(ref(adminDb, "permissions"));
+                if (permSnap.exists()) {
+                    const todayStr = today;
+                    const all = Object.values(permSnap.val() || {}).filter(p =>
+                        (p.uid === user.uid || p.staffId === user.uid) &&
+                        (p.status || "").toLowerCase() === "approved" &&
+                        p.fromDate && p.toDate &&
+                        p.fromDate <= todayStr && p.toDate >= todayStr
+                    );
+                    if (all.length) {
+                        all.sort((a, b) => new Date(b.createdAt || b.updatedAt || 0) - new Date(a.createdAt || a.updatedAt || 0));
+                        activePerm = all[0];
+                    }
+                }
+            } catch (e) {
+                console.error("ETA permission load error", e);
+            }
+
+            if (lastType.includes("out") || lastType.includes("exit")) {
+                if (activePerm) {
+                    etaEl.textContent = activePerm.toTime || "--";
+                    etaSubEl.textContent = `Expected back by ${activePerm.toDate} ${activePerm.toTime || ""}`.trim();
+                } else {
+                    etaEl.textContent = "--";
+                    etaSubEl.textContent = "Currently OUT, but no approved permission range for today.";
+                }
+            } else {
+                etaEl.textContent = "On Campus";
+                try {
+                    const timeOnly = new Date(lastEv.time).toLocaleTimeString();
+                    etaSubEl.textContent = `Last seen IN at ${timeOnly}`;
+                } catch {
+                    etaSubEl.textContent = "Last seen IN today.";
+                }
+            }
+            // Update neon live outing status banner
+            try {
+                renderLiveOutingStatus(lastEv || null, activePerm || null, todayEvents || []);
+            } catch (e) {
+                console.warn("liveOutingStatus render failed", e);
+            }
+        }
+
+        
+
+        let liveOutingTimerHandle = null;
+
+        function renderLiveOutingStatus(lastEv, activePerm, todayEvents) {
+            const banner = document.getElementById("liveOutingStatus");
+            const titleEl = document.getElementById("liveOutingTitle");
+            const msgEl = document.getElementById("liveOutingMsg");
+            const timerEl = document.getElementById("liveOutingTimer");
+            const metaEl = document.getElementById("liveOutingMeta");
+            const pillEl = document.getElementById("liveOutingPill");
+            const camDot = document.getElementById("liveCameraDot");
+
+            if (!banner || !titleEl || !msgEl || !timerEl || !metaEl || !pillEl || !camDot) return;
+
+            // clear previous interval
+            if (liveOutingTimerHandle) {
+                clearInterval(liveOutingTimerHandle);
+                liveOutingTimerHandle = null;
+            }
+
+            const now = new Date();
+            const hasEvents = Array.isArray(todayEvents) && todayEvents.length > 0;
+
+            if (!hasEvents && !activePerm) {
+                banner.classList.add("hidden");
+                banner.classList.remove("status-banner-danger", "status-banner-warn", "status-banner-safe", "status-banner-info");
+                return;
+            }
+
+            let status = "inside"; // inside, outside, late, unauthorized
+            let lastType = "";
+            let lastLate = "";
+            let lastTime = null;
+
+            if (lastEv) {
+                lastType = (lastEv.type || "").toLowerCase();
+                lastLate = (lastEv.lateness || "").toLowerCase();
+                try {
+                    lastTime = new Date(lastEv.time);
+                } catch {
+                    lastTime = null;
+                }
+            }
+
+            if (lastLate === "unauthorized" || lastType.includes("unauthor")) {
+                status = "unauthorized";
+            } else if (lastLate === "late") {
+                status = "late";
+            } else if (lastType.includes("out") || lastType.includes("exit")) {
+                status = "outside";
+            } else {
+                status = "inside";
+            }
+
+            // Permission-based override: if still outside and pass toTime, mark as late
+            let permTo = null;
+            if (activePerm && activePerm.toDate && activePerm.toTime) {
+                try {
+                    permTo = new Date(`${activePerm.toDate}T${activePerm.toTime}:00`);
+                } catch {
+                    permTo = null;
+                }
+            }
+
+            if (status === "outside" && permTo && now > permTo) {
+                status = "late";
+            }
+
+            // Configure banner styles & camera dot
+            banner.classList.remove("hidden");
+            banner.classList.remove("status-banner-danger", "status-banner-warn", "status-banner-safe", "status-banner-info");
+
+            let pillText = "";
+            let bannerClass = "status-banner-info";
+            let msg = "";
+            let meta = "";
+            let camClasses = "";
+
+            if (status === "outside") {
+                pillText = "OUTSIDE CAMPUS";
+                bannerClass = "status-banner-info";
+                msg = "You are currently OUT with an active session.";
+                if (activePerm && activePerm.toDate && activePerm.toTime) {
+                    meta = `Expected to return before ${activePerm.toDate} ${activePerm.toTime}`;
+                } else {
+                    meta = "No definite return time found for today.";
+                }
+                camClasses = "inline-flex h-2.5 w-2.5 rounded-full bg-sky-400 animate-ping-slow relative";
+            } else if (status === "inside") {
+                pillText = "INSIDE CAMPUS";
+                bannerClass = "status-banner-safe";
+                msg = "You are inside campus. No active OUT session.";
+                if (lastTime) {
+                    const t = lastTime.toLocaleTimeString();
+                    meta = `Last seen IN at ${t}`;
+                } else {
+                    meta = "No IN event recorded yet for today.";
+                }
+                camClasses = "inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping-slow relative";
+            } else if (status === "late") {
+                pillText = "LATE RETURN";
+                bannerClass = "status-banner-danger";
+                msg = "You have exceeded your permitted return time.";
+                if (activePerm && activePerm.toDate && activePerm.toTime) {
+                    meta = `Expected back by ${activePerm.toDate} ${activePerm.toTime}`;
+                } else {
+                    meta = "Check with admin for updated status.";
+                }
+                camClasses = "inline-flex h-2.5 w-2.5 rounded-full bg-rose-400 animate-ping-slow relative";
+            } else if (status === "unauthorized") {
+                pillText = "UNAUTHORIZED MOVEMENT";
+                bannerClass = "status-banner-warn";
+                msg = "System detected an unauthorized movement / scan.";
+                if (activePerm) {
+                    meta = "Permission exists, but this event did not match timing rules.";
+                } else {
+                    meta = "No valid permission found for this attempt.";
+                }
+                camClasses = "inline-flex h-2.5 w-2.5 rounded-full bg-amber-400 animate-ping-slow relative";
+            }
+
+            banner.classList.add(bannerClass);
+            pillEl.textContent = pillText;
+            msgEl.textContent = msg;
+            metaEl.textContent = meta;
+
+            camDot.className = camClasses;
+            // ensure inner solid dot
+            if (!camDot.querySelector("span")) {
+                const s = document.createElement("span");
+                s.className = "absolute inline-flex h-2.5 w-2.5 rounded-full bg-slate-100";
+                camDot.appendChild(s);
+            }
+
+            // Live countdown (only when outside with known toTime)
+            function updateCountdown() {
+                if (!(status === "outside" && permTo instanceof Date)) {
+                    timerEl.textContent = "";
+                    return;
+                }
+                const now2 = new Date();
+                const diffMs = permTo - now2;
+                if (diffMs <= 0) {
+                    timerEl.textContent = "Time over • You may be marked as LATE.";
+                    return;
+                }
+                const totalSec = Math.floor(diffMs / 1000);
+                const m = Math.floor(totalSec / 60);
+                const s = totalSec % 60;
+                timerEl.textContent = `Time left: ${m} min ${s.toString().padStart(2, "0")} sec`;
+            }
+
+            updateCountdown();
+            if (status === "outside" && permTo instanceof Date) {
+                liveOutingTimerHandle = setInterval(updateCountdown, 1000);
+            }
+        }
+// ANALYTICS
+        async function loadAnalytics() {
+            const totalEl = document.getElementById("statTotalSessions");
+            const onTimeEl = document.getElementById("statOnTime");
+            const lateEl = document.getElementById("statLate");
+            const unauthEl = document.getElementById("statUnauthorized");
+            const barEl = document.getElementById("statReliabilityBar");
+            const labelEl = document.getElementById("statReliabilityLabel");
+
+            try {
+                const snap = await get(ref(adminDb, `face_events/${user.uid}`));
+                let total = 0, onTime = 0, late = 0, unauthorized = 0;
+
+                if (snap.exists()) {
+                    Object.values(snap.val() || {}).forEach(dayObj => {
+                        Object.values(dayObj || {}).forEach(ev => {
+                            total++;
+                            const lateVal = (ev.lateness || "").toLowerCase();
+                            const t = (ev.type || "").toLowerCase();
+
+                            if (lateVal === "on-time") onTime++;
+                            else if (lateVal === "late") late++;
+                            else if (lateVal === "unauthorized" || t.includes("unauthor")) unauthorized++;
+                        });
+                    });
+                }
+
+                totalEl.textContent = total;
+                onTimeEl.textContent = onTime;
+                lateEl.textContent = late;
+                unauthEl.textContent = unauthorized;
+
+                const denom = onTime + late;
+                const reliability = denom === 0 ? 0 : Math.round((onTime / denom) * 100);
+                labelEl.textContent = reliability + "%";
+                barEl.style.width = reliability + "%";
+            } catch (e) {
+                console.error("Analytics load error", e);
+            }
+        }
+
+        // CALENDAR
+        let calMonthOffset = 0;
+        function buildCalendarBase(year, month) {
+            const first = new Date(year, month, 1);
+            const last = new Date(year, month + 1, 0);
+            const startDay = first.getDay();
+            const daysInMonth = last.getDate();
+            const days = [];
+            for (let i = 0; i < startDay; i++) days.push(null);
+            for (let d = 1; d <= daysInMonth; d++) days.push(d);
+            return days;
+        }
+
+        async function loadCalendar() {
+            const now = new Date();
+            const refDate = new Date(now.getFullYear(), now.getMonth() + calMonthOffset, 1);
+            const year = refDate.getFullYear();
+            const month = refDate.getMonth();
+            const label = refDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+            document.getElementById("calMonthLabel").textContent = label;
+
+            const body = document.getElementById("calendarBody");
+            body.innerHTML = "";
+
+            const snap = await get(ref(adminDb, `face_events/${user.uid}`));
+            const statusMap = {};
+            if (snap.exists()) {
+                Object.entries(snap.val() || {}).forEach(([date, dayObj]) => {
+                    const dDate = new Date(date);
+                    if (dDate.getFullYear() === year && dDate.getMonth() === month) {
+                        let dayStatus = "";
+                        Object.values(dayObj || {}).forEach(ev => {
+                            const lt = (ev.lateness || "").toLowerCase();
+                            const t = (ev.type || "").toLowerCase();
+                            if (lt === "unauthorized" || t.includes("unauthor")) dayStatus = "unauth";
+                            else if (lt === "late" && dayStatus !== "unauth") dayStatus = "late";
+                            else if (lt === "on-time" && !dayStatus) dayStatus = "on-time";
+                        });
+                        statusMap[date] = dayStatus;
+                    }
+                });
+            }
+
+            const days = buildCalendarBase(year, month);
+            days.forEach(d => {
+                const cell = document.createElement("div");
+                if (!d) {
+                    cell.className = "calendar-cell bg-slate-950";
+                    body.appendChild(cell);
+                    return;
+                }
+                const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+                const st = statusMap[dateStr];
+                if (st === "on-time") {
+                    cell.className = "calendar-cell bg-emerald-700 text-emerald-100";
+                } else if (st === "late") {
+                    cell.className = "calendar-cell bg-rose-700 text-rose-50";
+                } else if (st === "unauth") {
+                    cell.className = "calendar-cell bg-amber-600 text-amber-50";
+                } else {
+                    cell.className = "calendar-cell bg-slate-900 text-slate-500";
+                }
+                cell.textContent = d;
+                body.appendChild(cell);
+            });
+        }
+
+        document.getElementById("prevMonth").onclick = () => { calMonthOffset--; loadCalendar(); };
+        document.getElementById("nextMonth").onclick = () => { calMonthOffset++; loadCalendar(); };
+
+        // NOTIFICATIONS
+        function pushNotification(msg, type = "info") {
+            const notifList = document.getElementById("notifList");
+            const div = document.createElement("div");
+            const color =
+                type === "danger" ? "border-rose-700 bg-rose-950/50 text-rose-100"
+                    : type === "warn" ? "border-amber-600 bg-amber-950/50 text-amber-100"
+                        : "border-sky-600 bg-sky-950/50 text-sky-100";
+            div.className = `p-3 rounded border ${color} text-[11px] fade-in`;
+            div.textContent = msg;
+            notifList.prepend(div);
+        }
+        document.getElementById("clearNotificationsBtn").onclick = () => {
+            document.getElementById("notifList").innerHTML = "";
+        };
+
+        // PROFILE
+        document.getElementById("profileForm").onsubmit = async e => {
+            e.preventDefault();
+            await update(ref(staffDb, `staff_details/${user.uid}`), {
+                name: pfName.value,
+                department: pfDept.value,
+                phone: pfPhone.value
+            });
+            toast("Profile updated");
+            playPing();
+        };
+        document.getElementById("clearProfileBtn").onclick = () => {
+            pfName.value = "";
+            pfDept.value = "";
+            pfPhone.value = "";
+        };
+
+        // LIVE LOCATION
+        function subscribeLiveLocation() {
+            const baseRef = ref(adminDb, `live_location/${user.uid}`);
+            onValue(baseRef, snap => {
+                const statusEl = document.getElementById("liveLocStatus");
+                const latLngEl = document.getElementById("liveLatLng");
+                const updatedEl = document.getElementById("liveUpdatedAt");
+                const distEl = document.getElementById("liveDistance");
+                const linkEl = document.getElementById("liveMapLink");
+
+                if (!snap.exists()) {
+                    statusEl.textContent = "No live location available.";
+                    latLngEl.textContent = "--";
+                    updatedEl.textContent = "--";
+                    distEl.textContent = "--";
+                    linkEl.classList.add("hidden");
+                    return;
+                }
+
+                const d = snap.val();
+                statusEl.textContent = d.status || "Live tracking active.";
+                latLngEl.textContent = d.lat && d.lng ? `${d.lat}, ${d.lng}` : "--";
+                updatedEl.textContent = d.updatedAt
+                    ? new Date(d.updatedAt).toLocaleString()
+                    : "--";
+                distEl.textContent = d.distanceKm != null ? `${Number(d.distanceKm).toFixed(1)} km` : "--";
+
+                if (d.lat != null && d.lng != null) {
+                    linkEl.href = `https://www.google.com/maps?q=${d.lat},${d.lng}`;
+                    linkEl.classList.remove("hidden");
+                } else {
+                    linkEl.classList.add("hidden");
+                }
+            });
+        }
+
+        // QR
+        function makeQrPayload() {
+            if (!latestApprovedPermission) return null;
+            const p = latestApprovedPermission;
+            return `STAFF_PASS|${user.uid}|${p.fromDate} ${p.fromTime}|${p.toDate} ${p.toTime}|${p.status || 'approved'}`;
+        }
+
+        function updateQrPass() {
+            const canvas = document.getElementById("qrCanvas");
+            const meta = document.getElementById("qrMeta");
+            const payload = makeQrPayload();
+            if (!canvas || !window.QRCode) return;
+
+            const ctx = canvas.getContext("2d");
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (!payload) {
+                meta.textContent = "Waiting for an approved permission to generate QR.";
+                return;
+            }
+
+            QRCode.toCanvas(canvas, payload, { width: 220 }, (err) => {
+                if (err) {
+                    console.error(err);
+                    meta.textContent = "Error creating QR. Try again.";
+                } else {
+                    meta.textContent =
+                        `QR generated for active permission (${latestApprovedPermission.fromDate} → ${latestApprovedPermission.toDate}).`;
+                }
+            });
+        }
+
+        document.getElementById("refreshQR").onclick = () => {
+            updateQrPass();
+            toast("QR refreshed");
+        };
+
+        // CLEAR BUTTONS
+        document.getElementById("clearHistoryBtn").onclick = async () => {
+            if (!confirm("Clear permission history for your account?")) return;
+            const s = await get(ref(staffDb, "permissions"));
+            if (s.exists()) {
+                for (const [k, v] of Object.entries(s.val())) {
+                    if (v.uid === user.uid || v.staffId === user.uid) {
+                        await remove(ref(staffDb, `permissions/${k}`));
+                        await remove(ref(adminDb, `permissions/${k}`));
+                    }
+                }
+                toast("History cleared");
+            }
+        };
+
+        document.getElementById("clearFaceLogsBtn").onclick = async () => {
+            if (!confirm("Clear your face logs?")) return;
+            await remove(ref(adminDb, `face_events/${user.uid}`));
+            await remove(ref(staffDb, `face_logs/${user.uid}`));
+            toast("Logs cleared");
+        };
+
+        document.getElementById("clearMyPermissions").onclick = async () => {
+            if (!confirm("Clear all your active & past permissions?")) return;
+            const staffSnap = await get(ref(staffDb, "permissions"));
+            if (staffSnap.exists()) {
+                for (const [k, v] of Object.entries(staffSnap.val())) {
+                    if (v.uid === user.uid || v.staffId === user.uid) {
+                        await remove(ref(staffDb, `permissions/${k}`));
+                    }
+                }
+            }
+            const adminSnap = await get(ref(adminDb, "permissions"));
+            if (adminSnap.exists()) {
+                for (const [k, v] of Object.entries(adminSnap.val())) {
+                    if (v.uid === user.uid || v.staffId === user.uid) {
+                        await remove(ref(adminDb, `permissions/${k}`));
+                    }
+                }
+            }
+            toast("Your permissions cleared");
+        };
+
+        // NOTIF FROM PERMISSION STATUS
+        onValue(ref(adminDb, "permissions"), snap => {
+            if (!snap.exists()) return;
+            const vals = Object.values(snap.val()).filter(
+                p => p.uid === user.uid || p.staffId === user.uid
+            );
+            if (!vals.length) return;
+            const latest = vals.sort(
+                (a, b) =>
+                    new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+            )[0];
+            if (!latest) return;
+            const mark = `${latest.status}@${latest.updatedAt || latest.createdAt}`;
+            const key = "perm_seen_" + user.uid;
+            const seen = localStorage.getItem(key);
+            if (mark !== seen) {
+                localStorage.setItem(key, mark);
+                const sStatus = (latest.status || "").toLowerCase();
+                if (sStatus === "approved") {
+                    toast("Your permission approved", 4000);
+                    playPing(900);
+                    pushNotification("Permission approved for: " + (latest.reason || "request"), "info");
+                } else if (sStatus === "declined") {
+                    toast("Your permission declined", 4000);
+                    playPing(500);
+                    pushNotification("Permission declined: " + (latest.reason || ""), "danger");
+                }
+            }
+        });
+
+        // ALERTS → NOTIFS
+        onValue(ref(adminDb, "alerts"), snap => {
+            if (!snap.exists()) return;
+            const arr = Object.values(snap.val());
+            if (!arr.length) return;
+            const last = arr.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+            const msg = last.message || "";
+            const typ = (last.type || "").toLowerCase();
+            const urgent = ["unauthor", "late", "timeover"];
+
+            if (
+                urgent.some(u => typ.includes(u) || msg.toLowerCase().includes(u)) ||
+                msg.includes(user.name) ||
+                msg.includes(user.uid)
+            ) {
+                playPing(750);
+                toast(msg, 6000);
+                const nType = typ.includes("unauthor") ? "danger" :
+                    typ.includes("late") ? "warn" : "info";
+                pushNotification(msg, nType);
+            }
+        });
+
+        // PREFILL PROFILE
+        (async () => {
+            const s = await get(ref(staffDb, `staff_details/${user.uid}`));
+            if (s.exists()) {
+                const d = s.val();
+                pfName.value = d.name || user.name || "";
+                pfDept.value = d.department || "";
+                pfPhone.value = d.phone || "";
+            }
+        })();
+
+        // INITIAL LOAD
+        loadHistory();
+        loadFaceLogs();
+        loadDashboard();
+        loadAnalytics();
+        loadCalendar();
+        subscribeLiveLocation();
+
+        onValue(ref(adminDb, `face_events/${user.uid}`), () => {
+            loadAnalytics();
+            loadCalendar();
+        });
+
+        // VOICE ASSISTANT (MIC IN HEADER)
+        const voiceBtn = document.getElementById("voiceBtn");
+        const voiceStatus = document.getElementById("voiceStatus");
+        let recognising = false;
+        let recognition = null;
+
+        function speak(text) {
+            if (!("speechSynthesis" in window)) return;
+            const u = new SpeechSynthesisUtterance(text);
+            window.speechSynthesis.speak(u);
+        }
+
+        function initVoice() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {
+                voiceStatus.textContent = "Voice not supported in this browser.";
+                return;
+            }
+            recognition = new SR();
+            recognition.lang = "en-IN";
+            recognition.interimResults = false;
+            recognition.continuous = false;
+
+            recognition.onstart = () => {
+                recognising = true;
+                voiceStatus.textContent = "Listening... say: 'open permission', 'read my status', 'read notifications'.";
+                voiceBtn.classList.add("bg-sky-500/10");
+            };
+            recognition.onend = () => {
+                recognising = false;
+                voiceStatus.textContent = "";
+                voiceBtn.classList.remove("bg-sky-500/10");
+            };
+            recognition.onerror = (e) => {
+                recognising = false;
+                voiceStatus.textContent = "Voice error: " + e.error;
+                voiceBtn.classList.remove("bg-sky-500/10");
+            };
+            recognition.onresult = (e) => {
+                const transcript = (e.results[0][0].transcript || "").toLowerCase();
+                console.log("Voice:", transcript);
+                handleCommand(transcript);
+            };
+        }
+
+        function handleCommand(text) {
+            if (!text) return;
+            if (text.includes("open permission") || text.includes("apply permission")) {
+                showTab("Permission");
+                speak("Opening permission form.");
+                return;
+            }
+            if (text.includes("open dashboard") || text.includes("home")) {
+                showTab("Dashboard");
+                speak("Showing dashboard.");
+                return;
+            }
+            if (text.includes("open qr") || text.includes("my pass") || text.includes("qr pass")) {
+                showTab("QR");
+                speak("Showing your QR pass.");
+                return;
+            }
+            if (text.includes("read my status") || text.includes("what is my status")) {
+                const permText = document.getElementById("permStatus").textContent || "No permission found.";
+                const inVal = document.getElementById("todayIn").textContent;
+                const outVal = document.getElementById("todayOut").textContent;
+                const etaVal = document.getElementById("etaBack").textContent;
+                speak(`Your current permission status is: ${permText}. Today, IN count is ${inVal}, OUT count is ${outVal}. ETA back: ${etaVal}.`);
+                return;
+            }
+            if (text.includes("read notification") || text.includes("read my notifications")) {
+                const list = document.querySelectorAll("#notifList > div");
+                if (!list.length) {
+                    speak("You have no notifications.");
+                } else {
+                    let combined = "Your latest notifications are: ";
+                    list.forEach((item, idx) => {
+                        if (idx < 3) combined += item.textContent + ". ";
+                    });
+                    speak(combined);
+                }
+                return;
+            }
+            speak("Sorry, I did not understand. You can say open permission, read my status, open QR pass or read notifications.");
+        }
+
+        voiceBtn.addEventListener("click", () => {
+            if (!recognition) {
+                initVoice();
+                if (!recognition) {
+                    toast("Voice not supported in this browser.");
+                    return;
+                }
+            }
+            if (!recognising) {
+                recognition.start();
+            } else {
+                recognition.stop();
+            }
+        });
+
+        voiceStatus.textContent = "Tap 🎙 and say: 'open permission' or 'read my status'.";
+    </script>
+</body>
+
+</html>

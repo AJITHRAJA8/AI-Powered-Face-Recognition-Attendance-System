@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Admin Login – Smart Outing System</title>
+
+    <style>
+        /* ========= GLOBAL LAYOUT ========= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #020617 0, #00030d 55%);
+            color: #e5e7eb;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated cyber grid */
+        body::before {
+            content: "";
+            position: absolute;
+            inset: -50%;
+            background-image:
+                linear-gradient(rgba(0, 140, 255, 0.2) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 140, 255, 0.2) 1px, transparent 1px);
+            background-size: 65px 65px;
+            opacity: 0.25;
+            animation: gridMove 20s linear infinite;
+            z-index: -2;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(65px, 65px);
+            }
+        }
+
+        /* Blue glow orb */
+        body::after {
+            content: "";
+            position: absolute;
+            width: 560px;
+            height: 560px;
+            background: radial-gradient(circle, rgba(0, 191, 255, 0.36), transparent 70%);
+            filter: blur(10px);
+            z-index: -1;
+            top: 60%;
+            left: 75%;
+            transform: translate(-50%, -50%);
+        }
+
+        /* ========= WRAPPER ========= */
+        .shell {
+            width: min(1040px, 100% - 32px);
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: 32px;
+            border-radius: 28px;
+            padding: 26px 26px;
+            background: linear-gradient(135deg, rgba(2, 12, 34, 0.92), rgba(2, 8, 22, 0.96));
+            box-shadow:
+                0 0 0 1px rgba(0, 194, 255, 0.35),
+                0 32px 90px rgba(0, 0, 0, 0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @media (max-width: 880px) {
+            .shell {
+                grid-template-columns: minmax(0, 1fr);
+            }
+        }
+
+        /* ========= LEFT PANEL — ADMIN AUTHORITY PANEL ========= */
+        .brand {
+            padding: 12px 6px 12px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 18px;
+            border-right: 1px solid rgba(0, 140, 255, 0.4);
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 12px;
+            border-radius: 999px;
+            background: rgba(0, 31, 63, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.6);
+            color: #7dd3fc;
+            font-size: 11px;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+        }
+
+        .pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #f87171;
+            box-shadow: 0 0 10px #f87171;
+        }
+
+        .brand-title {
+            font-size: clamp(25px, 3vw, 32px);
+            font-weight: 650;
+            color: #dbeafe;
+            text-shadow: 0 0 18px rgba(0, 166, 255, 0.55);
+        }
+
+        .brand-sub {
+            font-size: 14px;
+            color: #9ca3af;
+            max-width: 320px;
+        }
+
+        .admin-grid {
+            margin-top: 14px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .chip {
+            padding: 7px 11px;
+            border-radius: 999px;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            background: radial-gradient(circle at 0 0, rgba(0, 191, 255, 0.25), rgba(2, 12, 34, 0.95));
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #e0e7ff;
+        }
+
+        .chip-icon {
+            width: 14px;
+            height: 14px;
+            border: 1px solid rgba(56, 189, 248, 0.7);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: #7dd3fc;
+        }
+
+        /* ========= RIGHT PANEL — LOGIN CARD ========= */
+        .panel {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 380px;
+            border-radius: 24px;
+            padding: 26px 26px 22px;
+            background: radial-gradient(circle at top, rgba(3, 12, 26, 0.96), rgba(2, 11, 20, 0.98));
+            box-shadow:
+                0 0 0 1px rgba(0, 199, 255, 0.6),
+                0 0 50px rgba(0, 140, 255, 0.9);
+            position: relative;
+        }
+
+        /* scanning hologram effect */
+        .login-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg,
+                    rgba(255, 255, 255, 0.07) 0%,
+                    transparent 60%);
+            mix-blend-mode: overlay;
+            animation: scan 4.5s linear infinite;
+        }
+
+        @keyframes scan {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        /* Tabs */
+        .tab {
+            display: inline-flex;
+            padding: 3px;
+            border-radius: 999px;
+            border: 1px solid rgba(0, 140, 255, 0.7);
+            margin-bottom: 16px;
+            background: rgba(2, 12, 34, 0.85);
+        }
+
+        .tab button {
+            padding: 7px 18px;
+            font-size: 12px;
+            border: none;
+            background: transparent;
+            color: #9ca3af;
+            cursor: pointer;
+            border-radius: 999px;
+            transition: 0.2s ease;
+        }
+
+        .tab .active {
+            background: linear-gradient(90deg, #0284c7, #22d3ee);
+            color: #0b1120;
+            font-weight: 600;
+            box-shadow: 0 0 16px rgba(0, 199, 255, 0.9);
+        }
+
+        h2 {
+            font-size: 22px;
+            color: #cdeafe;
+            margin-bottom: 4px;
+            text-shadow: 0 0 16px rgba(0, 191, 255, 0.5);
+        }
+
+        .sub {
+            font-size: 12px;
+            margin-bottom: 18px;
+            color: #8ca3b8;
+        }
+
+        label {
+            font-size: 12px;
+            margin-bottom: 4px;
+            display: block;
+            color: #9ca3af;
+        }
+
+        input {
+            width: 100%;
+            padding: 11px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid rgba(30, 58, 138, 0.95);
+            color: #e6f6ff;
+            margin-bottom: 12px;
+            outline: none;
+            font-size: 13px;
+            transition: 0.15s ease;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 18px rgba(0, 199, 255, 0.8);
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border-radius: 999px;
+            margin-top: 8px;
+            background: linear-gradient(90deg, #0284c7, #22d3ee);
+            border: none;
+            font-weight: 600;
+            color: #0b1120;
+            cursor: pointer;
+            box-shadow:
+                0 0 20px rgba(0, 199, 255, 0.6),
+                0 18px 40px rgba(0, 0, 0, 0.9);
+            transition: 0.15s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow:
+                0 0 25px rgba(0, 199, 255, 0.9),
+                0 22px 45px rgba(0, 0, 0, 1);
+        }
+
+        .toggle {
+            margin-top: 12px;
+            text-align: center;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+        .toggle span {
+            color: #67e8f9;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="shell">
+
+        <!-- LEFT ADMIN PANEL -->
+        <section class="brand">
+
+            <div class="pill">
+                <span class="pill-dot"></span>
+                <span>Admin Authority Console</span>
+            </div>
+
+            <div>
+                <h1 class="brand-title">Control Room Access</h1>
+                <p class="brand-sub">
+                    High-privilege access for monitoring, approving and managing campus-wide outing activity.
+                </p>
+            </div>
+
+            <div class="admin-grid">
+                <div class="chip">
+                    <div class="chip-icon">⚡</div>
+                    Real-time analytics
+                </div>
+                <div class="chip">
+                    <div class="chip-icon">🔐</div>
+                    Access logs
+                </div>
+                <div class="chip">
+                    <div class="chip-icon">🎛</div>
+                    Admin controls
+                </div>
+                <div class="chip">
+                    <div class="chip-icon">🧭</div>
+                    Movement tracking
+                </div>
+            </div>
+
+        </section>
+
+        <!-- RIGHT LOGIN PANEL -->
+        <section class="panel">
+
+            <div class="login-card">
+
+                <div class="tab">
+                    <button onclick="window.location.href='login-staff.html'">Staff</button>
+                    <button class="active">Admin</button>
+                </div>
+
+                <h2>Admin Login</h2>
+                <p class="sub">Restricted access. Authorized personnel only.</p>
+
+                <form id="adminLoginForm">
+                    <label>Email Address</label>
+                    <input type="email" id="email" placeholder="admin@college.edu" required />
+
+                    <label>Password</label>
+                    <input type="password" id="password" placeholder="••••••••" required />
+
+                    <button type="submit">Enter Control Room</button>
+                </form>
+
+                <div class="toggle">
+                    Need Staff Login? <span onclick="location.href='login-staff.html'">Switch</span>
+                </div>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <!-- Firebase Auth -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCyxCizOjiXjt0EsIEGQDCimAVVJvWAn5U",
+            authDomain: "admin-faecb.firebaseapp.com",
+            databaseURL: "https://admin-faecb-default-rtdb.firebaseio.com",
+            projectId: "admin-faecb",
+            storageBucket: "admin-faecb.firebasestorage.app",
+            messagingSenderId: "994094851836",
+            appId: "1:994094851836:web:b70663258641833abc5979",
+            measurementId: "G-397JTBXEPH"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        document.getElementById("adminLoginForm")
+            .addEventListener("submit", async (e) => {
+                e.preventDefault();
+                const email = document.getElementById("email").value.trim();
+                const password = document.getElementById("password").value.trim();
+
+                try {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    alert("Access Granted");
+                    window.location.href = "dashboard-admin.html";
+                } catch (error) {
+                    alert("Access Denied: " + error.message);
+                }
+            });
+    </script>
+
+</body>
+
+</html>

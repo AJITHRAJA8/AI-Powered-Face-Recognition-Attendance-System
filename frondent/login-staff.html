@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Staff Login – Smart Outing System</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top, #0f172a 0, #020617 55%, #020617 100%);
+            color: #e5e7eb;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: "";
+            position: absolute;
+            inset: -50%;
+            background-image:
+                linear-gradient(#020617 1px, transparent 1px),
+                linear-gradient(90deg, #020617 1px, transparent 1px);
+            background-size: 60px 60px;
+            opacity: 0.2;
+            animation: gridMove 22s linear infinite;
+            z-index: -2;
+        }
+
+        @keyframes gridMove {
+            0% {
+                transform: translate(0, 0);
+            }
+
+            100% {
+                transform: translate(60px, 60px);
+            }
+        }
+
+        body::after {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(56, 189, 248, 0.32), transparent 70%);
+            filter: blur(8px);
+            z-index: -1;
+            top: 55%;
+            left: 65%;
+            transform: translate(-50%, -50%);
+        }
+
+        .shell {
+            width: min(1040px, 100% - 32px);
+            display: grid;
+            grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+            gap: 32px;
+            border-radius: 28px;
+            padding: 26px 26px;
+            background: linear-gradient(135deg, rgba(15, 23, 42, 0.94), rgba(15, 23, 42, 0.92));
+            box-shadow:
+                0 0 0 1px rgba(15, 118, 210, 0.3),
+                0 32px 90px rgba(15, 23, 42, 0.9);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .shell::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 0 0,
+                    rgba(56, 189, 248, 0.12),
+                    transparent 55%);
+            pointer-events: none;
+        }
+
+        @media (max-width: 880px) {
+            .shell {
+                grid-template-columns: minmax(0, 1fr);
+                padding: 22px 18px 20px;
+            }
+        }
+
+        .brand {
+            padding: 12px 6px 12px 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: 18px;
+            border-right: 1px solid rgba(30, 64, 175, 0.6);
+        }
+
+        @media (max-width: 880px) {
+            .brand {
+                border-right: none;
+                border-bottom: 1px solid rgba(30, 64, 175, 0.6);
+                padding-bottom: 18px;
+                margin-bottom: 12px;
+            }
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: #7dd3fc;
+            background: rgba(8, 47, 73, 0.85);
+            border: 1px solid rgba(56, 189, 248, 0.55);
+        }
+
+        .pill-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        .brand-title {
+            font-size: clamp(24px, 3vw, 30px);
+            font-weight: 650;
+            letter-spacing: 0.03em;
+            color: #e5f2ff;
+            text-shadow: 0 0 18px rgba(59, 130, 246, 0.7);
+        }
+
+        .brand-sub {
+            font-size: 14px;
+            color: #9ca3af;
+            max-width: 320px;
+        }
+
+        .brand-grid {
+            margin-top: 12px;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .chip {
+            border-radius: 999px;
+            padding: 7px 11px;
+            border: 1px solid rgba(51, 65, 85, 0.95);
+            background: radial-gradient(circle at 0 0,
+                    rgba(56, 189, 248, 0.25),
+                    rgba(15, 23, 42, 0.95));
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            color: #d1d5db;
+        }
+
+        .chip-icon {
+            width: 14px;
+            height: 14px;
+            border-radius: 4px;
+            border: 1px solid rgba(56, 189, 248, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #7dd3fc;
+        }
+
+        .brand-footer {
+            margin-top: 22px;
+            font-size: 11px;
+            color: #6b7280;
+        }
+
+        .brand-footer span {
+            color: #67e8f9;
+        }
+
+        .panel {
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .login-card {
+            position: relative;
+            width: 100%;
+            max-width: 380px;
+            border-radius: 22px;
+            padding: 22px 22px 20px;
+            background: radial-gradient(circle at top,
+                    rgba(15, 23, 42, 0.98),
+                    rgba(15, 23, 42, 0.97));
+            box-shadow:
+                0 0 0 1px rgba(56, 189, 248, 0.6),
+                0 0 40px rgba(8, 145, 178, 0.8);
+            overflow: hidden;
+        }
+
+        .login-card::before {
+            content: "";
+            position: absolute;
+            inset: -40%;
+            background:
+                radial-gradient(circle at 0 0, rgba(59, 130, 246, 0.28), transparent 55%),
+                radial-gradient(circle at 100% 100%, rgba(8, 145, 178, 0.3), transparent 55%);
+            opacity: 0.85;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .login-top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+            font-size: 11px;
+            color: #9ca3af;
+        }
+
+        .tab {
+            display: inline-flex;
+            background: rgba(15, 23, 42, 0.95);
+            padding: 3px;
+            border-radius: 999px;
+            border: 1px solid rgba(30, 64, 175, 0.85);
+            margin-bottom: 14px;
+        }
+
+        .tab button {
+            border: none;
+            border-radius: 999px;
+            padding: 6px 16px;
+            font-size: 12px;
+            cursor: pointer;
+            background: transparent;
+            color: #9ca3af;
+            transition: all 0.2s ease;
+        }
+
+        .tab .active {
+            background: linear-gradient(90deg, #0ea5e9, #22d3ee);
+            color: #0b1220;
+            font-weight: 600;
+            box-shadow: 0 0 14px rgba(56, 189, 248, 0.9);
+        }
+
+        .welcome-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #e5f2ff;
+        }
+
+        .welcome-sub {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-bottom: 18px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #9ca3af;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px 11px;
+            margin-bottom: 12px;
+            border-radius: 10px;
+            border: 1px solid rgba(30, 64, 175, 0.85);
+            background: rgba(15, 23, 42, 0.9);
+            color: #e5e7eb;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+        }
+
+        input::placeholder {
+            color: #64748b;
+        }
+
+        input:focus {
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.8), 0 0 20px rgba(8, 145, 178, 0.9);
+            background: rgba(15, 23, 42, 0.96);
+        }
+
+        button {
+            width: 100%;
+            margin-top: 4px;
+            padding: 10px 11px;
+            border-radius: 999px;
+            border: none;
+            background: linear-gradient(90deg, #0ea5e9, #22c55e);
+            color: #0b1120;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            box-shadow:
+                0 0 18px rgba(34, 211, 238, 0.8),
+                0 14px 32px rgba(15, 23, 42, 0.95);
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow:
+                0 0 22px rgba(56, 189, 248, 0.9),
+                0 18px 40px rgba(15, 23, 42, 1);
+        }
+
+        button:active {
+            transform: translateY(0);
+            box-shadow:
+                0 0 12px rgba(56, 189, 248, 0.8),
+                0 10px 26px rgba(15, 23, 42, 0.95);
+        }
+
+        .toggle {
+            margin-top: 12px;
+            font-size: 12px;
+            text-align: center;
+            color: #9ca3af;
+        }
+
+        .toggle span {
+            color: #7dd3fc;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .toggle span:hover {
+            text-decoration: underline;
+        }
+
+        .hint-row {
+            margin-top: 8px;
+            font-size: 11px;
+            color: #6b7280;
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .hint-accent {
+            color: #7dd3fc;
+        }
+
+        .hud-chip {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            font-size: 10px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            background: rgba(15, 23, 42, 0.95);
+            border: 1px solid rgba(56, 189, 248, 0.65);
+            color: #bae6fd;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .hud-led {
+            width: 6px;
+            height: 6px;
+            border-radius: 999px;
+            background: #22c55e;
+            box-shadow: 0 0 10px #22c55e;
+        }
+
+        @media (max-width: 880px) {
+            .hud-chip {
+                top: 8px;
+                right: 10px;
+            }
+
+            .login-card {
+                padding: 20px 18px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <!-- LEFT PANEL -->
+        <section class="brand">
+            <div class="pill">
+                <span class="pill-dot"></span>
+                <span>Smart Outing AI</span>
+            </div>
+
+            <div>
+                <h1 class="brand-title">Staff Access Console</h1>
+                <p class="brand-sub">
+                    Secure gateway for staff to request outings, track live status and stay in sync with campus control.
+                </p>
+            </div>
+
+            <div class="brand-grid">
+                <div class="chip">
+                    <span class="chip-icon">⏱</span>
+                    <span>Real-time approvals</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">📍</span>
+                    <span>Live movement trail</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">🧠</span>
+                    <span>AI risk scoring</span>
+                </div>
+                <div class="chip">
+                    <span class="chip-icon">🔒</span>
+                    <span>Role-based access</span>
+                </div>
+            </div>
+
+            <div class="brand-footer">
+                Powered by <span>Face Analytics</span> &amp; <span>Firebase</span>.
+            </div>
+        </section>
+
+        <!-- RIGHT PANEL -->
+        <section class="panel">
+            <div class="login-card">
+                <div class="hud-chip">
+                    <span class="hud-led"></span> STAFF MODE
+                </div>
+
+                <div class="login-top-row">
+                    <span>Sign in to continue</span>
+                    <span>Session · <span class="hint-accent">Encrypted</span></span>
+                </div>
+
+                <div class="tab">
+                    <button class="active">STAFF</button>
+                    <button onclick="window.location.href='login-admin.html'">ADMIN</button>
+                </div>
+
+                <!-- LOGIN BOX -->
+                <div id="loginBox">
+                    <h2 class="welcome-title">Welcome back</h2>
+                    <p class="welcome-sub">Use your staff email to access outing permissions console.</p>
+
+                    <form id="loginForm">
+                        <label for="loginEmail">Staff email</label>
+                        <input type="email" id="loginEmail" placeholder="you@college.edu" required />
+
+                        <label for="loginPassword">Password</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required />
+
+                        <button type="submit">SIGN IN AS STAFF</button>
+                    </form>
+
+                    <div class="hint-row">
+                        <span>Tip: use the same email registered in staff records.</span>
+                        <span class="hint-accent">Trouble? Contact admin.</span>
+                    </div>
+
+                    <div class="toggle">
+                        Don't have an account?
+                        <span onclick="showRegister()">Register</span>
+                    </div>
+                </div>
+
+                <!-- INLINE REGISTER BOX -->
+                <div id="registerBox" style="display:none;">
+                    <h2 class="welcome-title">Create staff account</h2>
+                    <p class="welcome-sub">Register once, then use the same credentials for all outings.</p>
+
+                    <form id="registerForm">
+                        <label for="regName">Full name</label>
+                        <input type="text" id="regName" placeholder="Your name" required />
+
+                        <label for="regEmail">Work email</label>
+                        <input type="email" id="regEmail" placeholder="you@college.edu" required />
+
+                        <label for="regPassword">Password</label>
+                        <input type="password" id="regPassword" placeholder="Create a strong password" required />
+
+                        <button type="submit">REGISTER AS STAFF</button>
+                    </form>
+
+                    <div class="toggle">
+                        Already registered?
+                        <span onclick="showLogin()">Back to login</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- ============== FIREBASE + AUTH/DB LOGIC ============== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+        import {
+            getAuth,
+            signInWithEmailAndPassword,
+            createUserWithEmailAndPassword
+        } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+        import {
+            getDatabase,
+            ref,
+            set,
+            get
+        } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBaVTNePTudTNwaBLSg_tnXJdVNYImhLtA",
+            authDomain: "staff-outing-8754d.firebaseapp.com",
+            databaseURL: "https://staff-outing-8754d-default-rtdb.firebaseio.com",
+            projectId: "staff-outing-8754d",
+            storageBucket: "staff-outing-8754d.appspot.com",
+            messagingSenderId: "626313854211",
+            appId: "1:626313854211:web:794b8360e41f4b5290fd36"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app);
+
+        // ---------- LOGIN ----------
+        document.getElementById("loginForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("loginEmail").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+
+            try {
+                // 1) Auth – if this passes, login is SUCCESS
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // 2) Try to read staff_details (do not block login on error)
+                let staffData = { name: "Staff" };
+                try {
+                    const snap = await get(ref(db, "staff_details/" + user.uid));
+                    if (snap.exists()) {
+                        staffData = snap.val();
+                    } else {
+                        console.warn("No staff_details entry for uid:", user.uid);
+                    }
+                } catch (dbErr) {
+                    console.warn("Realtime DB read failed, but login continues:", dbErr);
+                }
+
+                // 3) Store data for dashboard
+                const staffUser = {
+                    uid: user.uid,
+                    email: user.email,
+                    name: staffData.name || "Staff"
+                };
+                localStorage.setItem("staffUser", JSON.stringify(staffUser));
+
+                alert("Login successful!");
+                window.location.href = "dashboard-staff.html";
+            } catch (authError) {
+                alert("Login failed: " + authError.message);
+            }
+        });
+
+        // ---------- INLINE REGISTER ----------
+        document.getElementById("registerForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("regName").value.trim();
+            const email = document.getElementById("regEmail").value.trim();
+            const password = document.getElementById("regPassword").value.trim();
+
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+
+                // Try to write staff_details (but don't block success on DB rules)
+                try {
+                    await set(ref(db, "staff_details/" + user.uid), {
+                        uid: user.uid,
+                        name,
+                        email,
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (dbErr) {
+                    console.warn("DB write error (user still created in Auth):", dbErr);
+                }
+
+                alert("Registered successfully! Please login.");
+                showLogin();
+            } catch (err) {
+                alert("Registration failed: " + err.message);
+            }
+        });
+
+        // ---------- TOGGLE VIEW ----------
+        window.showRegister = () => {
+            document.getElementById("loginBox").style.display = "none";
+            document.getElementById("registerBox").style.display = "block";
+        };
+
+        window.showLogin = () => {
+            document.getElementById("registerBox").style.display = "none";
+            document.getElementById("loginBox").style.display = "block";
+        };
+    </script>
+</body>
+
+</html>
